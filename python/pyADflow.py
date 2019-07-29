@@ -1108,13 +1108,13 @@ class ADFLOW(AeroSolver):
             self.solveTimeStep()
             self.writeSolution()
 
-    def advanceTimeStepCounter(self):
+    def advanceTimeStepCounter(self, adv=1):
         """
         Advance one unit of timestep and physical time.
         """
-        self.adflow.monitor.timestepunsteady = self.adflow.monitor.timestepunsteady + 1
+        self.adflow.monitor.timestepunsteady = self.adflow.monitor.timestepunsteady + adv
         self.adflow.monitor.timeunsteady     = self.adflow.monitor.timeunsteady     + \
-            self.adflow.inputunsteady.deltat
+            adv*self.adflow.inputunsteady.deltat
 
         if self.myid == 0:
             self.adflow.utils.unsteadyheader()
@@ -2757,6 +2757,26 @@ class ADFLOW(AeroSolver):
             # dummy data that doesn't matter
             return (self._createFortranStringArray(['Pressure']), [0.0],
                     [[1,1]], groupNames, True)
+
+    def getPointRef(self):
+        return self.adflow.inputphysics.pointref
+
+
+    def setPointRef(self, pointRef):
+        """
+        This function can be used to update the reference point during
+        run such as between timesteps for unsteady run
+        
+        Parameters
+        ----------
+        pointRef : list
+            Contrains the reference point. Format of the list is
+            as follows [xRef, yRef, zRef]
+        """
+        if len(pointRef) < 3:
+            raise Error("'pointRef' needs to be list of three numbers. Length of list is {0:d}".format(len(pointRef)))
+        self.adflow.inputphysics.pointref = pointRef
+
 
     def getForces(self, groupName=None, TS=0):
         """ Return the forces on this processor on the families defined by groupName.
