@@ -68,7 +68,6 @@ class BaseHeatXferTest:
         # self.CFDSolver(self.ap)
 
 
-
 class HeatXferTests(BaseHeatXferTest, unittest.TestCase):
     def test_bcdata(self):
         "Check that the temperature data set on the surface is read correctly"
@@ -133,7 +132,7 @@ class HeatXferTests(BaseHeatXferTest, unittest.TestCase):
 
 class HeatXferAeroDVDerivsTests(BaseHeatXferTest, unittest.TestCase):
     def test_fwd_AeroDV(self):
-        "test the FWD derivatives of the functional"
+        "test the FWD derivatives of the functional wrt alpha"
 
         self.ap.addDV('alpha', value=0.0)
         self.ap.DVs.pop('wall_temp')
@@ -141,7 +140,7 @@ class HeatXferAeroDVDerivsTests(BaseHeatXferTest, unittest.TestCase):
         xDvDot = {"alpha_n0012_hot": 1.0}
 
         resDot_FD, funcsDot_FD, fDot_FD, hfDot_FD = self.CFDSolver.computeJacobianVectorProductFwd(
-            xDvDot=xDvDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode="FD", h=1e-8
+            xDvDot=xDvDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode="FD", h=5e-6
         )
 
         resDot, funcsDot, fDot, hfDot = self.CFDSolver.computeJacobianVectorProductFwd(
@@ -151,38 +150,46 @@ class HeatXferAeroDVDerivsTests(BaseHeatXferTest, unittest.TestCase):
 
         for func in funcsDot:
             print(func, funcsDot_FD[func], funcsDot[func])
-            np.testing.assert_allclose(funcsDot_FD[func], funcsDot[func], err_msg=func, atol=1e-10)
+            np.testing.assert_allclose(funcsDot_FD[func], funcsDot[func], err_msg=func, atol=5e-8)
 
-        np.testing.assert_allclose(fDot_FD, fDot, atol=1e-10)
+        
+        # we know what the correct answer should be so use that instead of the FD value
+        np.testing.assert_allclose(fDot*0.0, fDot, atol=1e-10)
 
-        np.testing.assert_allclose(hfDot_FD, hfDot, atol=1e-10)
+        np.testing.assert_allclose(hfDot_FD*0.0, hfDot, atol=1e-10)
 
 
-    @unittest.skip("")
-    def test_fwd_BCDV_CS(self):
-        "test the FWD derivatives of the functional"
+    # @unittest.skip("")
+    def cmplxtest_fwd_AeroDV(self):
+        "test the FWD derivatives of the functional wrt Alpha using CS"
+        self.ap.addDV('alpha', value=0.0)
+        self.ap.DVs.pop('wall_temp')
+
+
 
         from adflow.pyADflow_C import ADFLOW_C
-
         self.CFDSolver = ADFLOW_C(options=self.aero_options)
+        self.CFDSolver.getResidual(self.ap)
 
-
-        self.ap.setBCVar(self.BCVar, 300.0, self.group)
-        self.ap.addDV(self.BCVar, name="wall_temp", familyGroup=self.group)
-        self.CFDSoler.getResidual(self.ap)
-
-        xDvDot = {"wall_temp": 1.0}
+        xDvDot = {"alpha_n0012_hot": 1.0}
+        
 
         resDot_CS, funcsDot_CS, fDot_CS, hfDot_CS = self.CFDSolver.computeJacobianVectorProductFwd(
             xDvDot=xDvDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode="CS", h=1e-200
         )
+        
+        for func in funcsDot_CS:
+            print(func, funcsDot_CS[func])
+        
 
-    def test_bwd_BCDV(self):
-        "test the FWD derivatives of the functional"
+    def test_bwd_AeroDV(self):
+        "test the BWD derivatives of the functional"
 
 
-        func = "wall_temp"
-        xDvDot = {func: 1.0}
+        self.ap.addDV('alpha', value=0.0)
+        self.ap.DVs.pop('wall_temp')
+
+        xDvDot = {"alpha_n0012_hot": 1.0}
 
         resDot, funcsDot, fDot, hfDot = self.CFDSolver.computeJacobianVectorProductFwd(
             xDvDot=xDvDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode="AD"
@@ -207,13 +214,14 @@ class HeatXferAeroDVDerivsTests(BaseHeatXferTest, unittest.TestCase):
         _sum += np.dot(hfDot.flatten(), hxferBar.flatten())
         _sum += np.sum([x for x in funcsDot.values()])
 
-        np.testing.assert_array_almost_equal(np.dot(xDvDot[func], xVBar[func]), _sum, decimal=14)
+        for dv in xDvDot:
+            np.testing.assert_array_almost_equal(np.dot(xDvDot[dv], xVBar[dv]), _sum, decimal=14)
 
 
 
 class HeatXferBCDVDerivsTests(BaseHeatXferTest, unittest.TestCase):
     def test_fwd_BCDV(self):
-        "test the FWD derivatives of the functional"
+        "test the FWD derivatives of the functional wrt BC DVs"
 
         xDvDot = {"wall_temp": 1.0}
 
@@ -225,12 +233,13 @@ class HeatXferBCDVDerivsTests(BaseHeatXferTest, unittest.TestCase):
             xDvDot=xDvDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode="AD"
         )
 
-        np.testing.assert_allclose(resDot_FD, resDot, atol=5e-9)
+        np.testing.assert_allclose(resDot_FD, resDot, atol=5e-8)
 
         for func in funcsDot:
             np.testing.assert_allclose(funcsDot_FD[func], funcsDot[func], err_msg=func, atol=1e-5)
-
-        np.testing.assert_allclose(fDot_FD, fDot, atol=1e-10)
+        
+        # we know what the correct answer should be so use that instead of the FD value
+        np.testing.assert_allclose(fDot*0.0, fDot, atol=1e-10)
 
         np.testing.assert_allclose(hfDot_FD, hfDot, atol=1e-10)
 
@@ -300,28 +309,23 @@ class HeatXferXVDerivsTests(BaseHeatXferTest, unittest.TestCase):
         )
 
         resDot_FD, funcsDot_FD, fDot_FD, hfDot_FD = self.CFDSolver.computeJacobianVectorProductFwd(
-            xVDot=xVDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode="FD", h=1e-10
+            xVDot=xVDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode="FD", h=5e-8
         )
 
-        # these are checked against CS becuase the derivates appear to be poorly conditioned
-        import pickle
-        with open("resDot_CS.p", "rb") as f:
-            resDot_CS = pickle.load(f)
+        # these are checked against CS because the dervatives appear to be poorly conditioned
+        # import pickle
+        # with open("resDot_CS.p", "rb") as f:
+            # resDot_CS = pickle.load(f)
 
         # np.testing.assert_allclose(resDot_CS, resDot, rtol=5e-8)
 
         for func in funcsDot:
-            np.testing.assert_allclose(funcsDot_FD[func], funcsDot[func], err_msg=func, rtol=1e-5)
+            np.testing.assert_allclose(funcsDot_FD[func], funcsDot[func], err_msg=func, rtol=3e-5)
 
         np.testing.assert_allclose(fDot_FD, fDot, rtol=5e-5)
 
         np.testing.assert_allclose(hfDot_FD[hfDot_FD != 0], hfDot[hfDot_FD != 0], rtol=5e-4)
 
-        # xVDot = self.CFDSolver.getSpatialPerturbation(321)
-
-        # resDot_CS, funcsDot_CS, fDot_CS, hfDot_CS = self.CFDSolver.computeJacobianVectorProductFwd(
-        #     xVDot=xVDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode="CS", h=1e-200
-        # )
 
     # @unittest.skip("")
     def test_bwd_XV(self):

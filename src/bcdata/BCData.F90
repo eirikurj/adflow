@@ -458,7 +458,6 @@ contains
 
     call siTemperature(temp(1), mult, trans)
 
-
     do j=jBeg,jEnd
        do i=iBeg,iEnd
           BCData(boco)%TNS_Wall(i,j) = (mult*bcVarArray(i,j,1) + trans)/Tref
@@ -1432,30 +1431,35 @@ contains
   end subroutine getNumPatches
 
 
-  subroutine getPatchData(sps, famList, patchLoc, patchBCType, patchNumBCVar, patchFamID, patchNumNodes)
-   ! TODO get Sandy's feed back on this code
-    !  gets the given bcData array
-
-    use constants
-    use cgnsNames
-    use blockPointers, only : BCData, nBocos, nDom, nBKGlobal, cgnsSubFace, BCType
-    use utils, only : setPointers
-    use sorting, only : famInList
-
-    !
-    !      Subroutine arguments.
-    !
-    integer(kind=intType), intent(in) ::  sps
-    integer(kind=intType), dimension(:), intent(in) :: famList
-
-      ! time spectral instance
-   !  integer(kind=intType), dimension(nDom, 8, 6 ), intent(out) :: PatchData
+  subroutine getPatchInfo(sps, famList, patchLoc, patchBCType, patchNumBCVar, patchFamID, patchLocalIIndices, patchLocalJIndices)
+    ! returns infromation about the patches in the famList
+   ! this information inculdes .....
+   use constants
+   use cgnsNames
+   use blockPointers, only : BCData, nBocos, nDom, nBKGlobal, cgnsSubFace, BCType
+   use utils, only : setPointers
+   use sorting, only : famInList
+   
+   !
+   !      Subroutine arguments.
+   !
+   integer(kind=intType), intent(in) ::  sps
+   integer(kind=intType), dimension(:), intent(in) :: famList
+   
+    !the location of the patch in (idx_block, idx_boco),
     integer(kind=intType), dimension(:,: ), intent(inout) :: patchLoc
+    !the type of boundary condition
     integer(kind=intType), dimension(:), intent(inout) :: patchBCType
+    !the number of boundary condition variables
     integer(kind=intType), dimension(:), intent(inout) :: patchNumBCVar
+    !the family id of the patch
     integer(kind=intType), dimension(:), intent(inout) :: patchFamID
-    integer(kind=intType), dimension(:), intent(inout) :: patchNumNodes
-      ! number of patches which have bc data
+    
+    ! the subset of the patch face on this processor useing...
+    ! the i indices of the start and end of the local subset
+    integer(kind=intType), dimension(:,:), intent(inout) :: patchLocalIIndices 
+    ! the i indices of the start and end of the local subset
+    integer(kind=intType), dimension(:,:), intent(inout) :: patchLocalJIndices
     !
     !      Local variables.
     !
@@ -1491,7 +1495,14 @@ contains
 
             patchBCType(idx) = BCType(j)
             patchFamID(idx) = BCData(j)%famID
-            patchNumNodes(idx) = iSize*jSize
+            
+            patchLocalIIndices(idx,  1) = iBeg
+            patchLocalIIndices(idx, 2) = iEnd
+            
+            patchLocalJIndices(idx,  1) = jBeg
+            patchLocalJIndices(idx, 2) = jEnd
+            
+            
 
             select case (BCType(j))
 
@@ -1541,12 +1552,12 @@ contains
     end do domainsLoop
 
 
-  end subroutine getPatchData
+  end subroutine getPatchInfo
 
 
 
-  subroutine getBCData(sps, patchLoc, patchNumBCVar, patchNumNodes, nBCArrays, &
-                       maxPatchSize, BCDataArray, BCDataVarNames, BCDataArrSizes)
+  subroutine getBCData(sps, patchLoc, patchNumBCVar, nBCArrays, &
+                       maxPatchSize, BCDataArray, BCDataVarNames)
    ! TODO get Sandy's feed back on this code
     !  gets the given bcData array
 
@@ -1566,17 +1577,24 @@ contains
     integer(kind=inttype), intent(in) ::  maxPatchSize
     integer(kind=intType), dimension(:,: ), intent(in) :: patchLoc
     integer(kind=intType), dimension(:), intent(in) ::    patchNumBCVar
-    integer(kind=intType), dimension(:), intent(in) ::    patchNumNodes
 
     real(kind=realType), dimension(nBCArrays,maxPatchSize), intent(out) :: BCDataArray
-    integer(kind=intType), dimension(nBCArrays), intent(out) :: BCDataArrSizes
       ! bc data to be set
     character, dimension(nBCArrays,maxCGNSNameLen), intent(out) :: BCDataVarNames
       ! name of the physical quantity that the data array applies to ('Temperature' , 'Pressure', ect.)
+    
+   !  ! the subset of the patch face on this processor using...
+   !  ! the i indices of the start and end of the local subset
+   !  integer(kind=intType), dimension(:,:), intent(inout) :: patchLocalIIndices 
+   !  ! the i indices of the start and end of the local subset
+   !  integer(kind=intType), dimension(:,:), intent(inout) :: patchLocalJIndices
+
     !
     !      Local variables.
     !
     integer(kind=intType) :: i, iarray, j, k, m, nNodes, ii,  idx, mm
+    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd
+    
     character(maxCGNSNameLen) :: varName
 
    idx = 1
@@ -1586,7 +1604,6 @@ contains
        ! the code readable.
        i = patchLoc(ii,1)
        j = patchLoc(ii,2)
-       nNodes = patchNumNodes(ii)
        m = patchNumBCVar(ii)
 
        call setPointers(i, 1_intType, sps)
@@ -1616,7 +1633,10 @@ contains
             'This is not a valid boundary condtion for getBCData')
       end select
 
-      call extractPatchData(BCDataArray(idx:idx+m-1, 1:nNodes), BCDataVarNames(idx:idx+m, :), BCDataArrSizes(idx:idx+m))
+      iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
+      jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
+      
+      call extractPatchData(iBeg, iEnd, jBeg, jEnd, BCDataArray(idx:idx+m-1, :), BCDataVarNames(idx:idx+m, :))
 
       idx = idx + m
    end do
@@ -1655,6 +1675,8 @@ contains
     !      Local variables.
     !
     integer(kind=intType) :: i, iarray, j, k, m, ii,  idx, mm
+    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd
+    
     character(maxCGNSNameLen) :: varName
 
    idx = 1
@@ -1664,9 +1686,7 @@ contains
        i = patchLoc(ii,1)
        j = patchLoc(ii,2)
        m = patchNumBCVar(ii)
-      ! write(*,*) patchLoc(ii,:)
        call setPointers(i, 1_intType, sps)
-      ! write(*,*) 'j', j
       ! Store the cgns boundary subface number, the number of
       ! boundary condition data sets and the data sets a bit easier.
 
@@ -1693,8 +1713,11 @@ contains
          cycle
       end select
 
+      iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
+      jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
+   
       call insertToDataSet(BCDataArray(idx:idx+m-1,:),&
-                           BCDataVarNames(idx:idx+m-1, :))
+                           BCDataVarNames(idx:idx+m-1, :), iBeg, iEnd, jBeg, jEnd)
 
       idx = idx + m
 
@@ -1737,6 +1760,8 @@ contains
     !      Local variables.
     !
     integer(kind=intType) :: i, iarray, j, k, m, ii,  idx, mm
+    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd
+    
     character(maxCGNSNameLen) :: varName
 
    idx = 1
@@ -1774,9 +1799,13 @@ contains
          end if
          cycle
       end select
+
+      iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
+      jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
+   
       call insertToDataSet_d(BCDataArray(idx:idx+m-1,:),&
-                             BCDataVarNames(idx:idx+m-1, :),&
-                             BCDataArrayd(idx:idx+m-1,:))
+                           BCDataVarNames(idx:idx+m-1, :), BCDataArrayd(idx:idx+m-1,:), iBeg, iEnd, jBeg, jEnd)
+    
 
       idx = idx + m
 
@@ -1821,6 +1850,7 @@ contains
     !      Local variables.
     !
     integer(kind=intType) :: i, iarray, j, k, m, ii,  idx, mm
+    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd
     character(maxCGNSNameLen) :: varName
 
    idx = 1
@@ -1859,9 +1889,12 @@ contains
          cycle
       end select
 
+      iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
+      jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
+   
       call insertToDataSet_b(BCDataArray(idx:idx+m-1,:),&
                              BCDataVarNames(idx:idx+m-1, :),&
-                             BCDataArrayd(idx:idx+m-1,:))
+                             BCDataArrayd(idx:idx+m-1,:), iBeg, iEnd, jBeg, jEnd )
       idx = idx + m
 
    end do
@@ -1869,7 +1902,7 @@ contains
   end subroutine setBCData_b
 
 
-  subroutine extractPatchData(bcVarArrays, BCDataVarNames, BCDataArrSizes)
+  subroutine extractPatchData(iBeg, iEnd, jBeg, jEnd, bcVarArrays, BCDataVarNames)
       !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
@@ -1885,15 +1918,14 @@ contains
     use blockPointers, onlY : nbkGlobal, BCData
     use utils, only : terminate
     implicit none
-    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd, iSize, jSize
-    real(kind=realType), dimension(:,:) :: bcVarArrays
-    integer(kind=intType), dimension(:) :: BCDataArrSizes
+    integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    real(kind=realType), dimension(:,:), intent(out) :: bcVarArrays
     character, dimension(:,:), intent(out) :: BCDataVarNames
-
+    
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, i, j, ii, c, lenDataArr
+    integer(kind=intType) :: k, l, m, n, i, j, ii, c, iSize, jSize, idx_bc_arr
     integer(kind=intType) :: nInter, nDim, nVarPresent, nCoor
 
     integer(kind=intType), dimension(3) :: dataDim, coor
@@ -1911,9 +1943,9 @@ contains
     ! variables specified is usually not so big, a linear search
     ! algorithm is perfectly okay. At the moment only the Dirichlet
     ! arrays are checked.
-    iSize = iEnd - iBeg - 1
-    jSize = jEnd - jBeg - 1
-
+    iSize = iEnd - iBeg + 1
+    jSize = jEnd - jBeg + 1
+    
     call setBCVarPresent(ind)
 
     ii = 1
@@ -1921,22 +1953,25 @@ contains
        if( bcVarPresent(m) ) then
           k = ind(1,m)
           l = ind(2,m)
-
-         lenDataArr = size(dataSet(k)%dirichletArrays(l)%dataArr,1)
-
-         bcVarArrays(ii, 1:lenDataArr) = &
-         dataSet(k)%dirichletArrays(l)%dataArr(1:lenDataArr)
-
-         BCDataArrSizes(ii) = lenDataArr
-
-         varName  = bcVarNames(m)
-
-         ! TODO generalize to str2char util func
-         do c =1,len(bcVarNames(m))
-            BCDataVarNames(ii,c) = varName(c:c)
-         end do
-
-         BCDataArrSizes(ii) = size(dataSet(k)%dirichletArrays(l)%dataArr,1)
+          
+          varName  = bcVarNames(m)
+          
+          ! TODO generalize to str2char util func
+          do c =1,len(bcVarNames(m))
+             BCDataVarNames(ii,c) = varName(c:c)
+          end do
+          
+         
+          ! we need to be carful here becuase the dataArr is not split when the face is split across processors. 
+          ! thus we need to only take the peice given by the range of iBeg,iEnd,jBeg,jEnd
+          idx_bc_arr = 1
+         do i = iBeg, iEnd
+            do j = jBeg, jEnd
+               bcVarArrays(ii, idx_bc_arr) = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)
+               idx_bc_arr = idx_bc_arr + 1
+            end do 
+         end do 
+          
 
          ii = ii + 1
 
@@ -2006,13 +2041,13 @@ contains
     use blockPointers, onlY : nbkGlobal, BCData
     use utils, only : terminate
     implicit none
-    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd, iSize, jSize
-    real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax) :: bcVarArray
+    integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax), intent(out) :: bcVarArray
 
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, i, j, ii
+    integer(kind=intType) :: k, l, m, n, i, j, ii, iSize, jSize
     integer(kind=intType) :: nInter, nDim, nVarPresent, nCoor
 
     integer(kind=intType), dimension(3) :: dataDim, coor
@@ -2031,9 +2066,7 @@ contains
     ! arrays are checked.
 
     nVarPresent = 0
-    iSize = iEnd - iBeg - 1
-    jSize = jEnd - jBeg - 1
-
+    jSize = jEnd - jBeg 
     call setBCVarPresent(ind)
 
     ! Find out whether the given data points are equal for every
@@ -2047,41 +2080,34 @@ contains
 
          bcVarArray(:, :,m) = 0
 
-         ! write(*,*) 'bcVarArray in', bcVarNames(m)
-         ! write(*,*) 'iSize, jSize', iSize, jSize, shape(dataSet(k)%dirichletArrays(l)%dataArr), &
-         !  size(dataSet(k)%dirichletArrays(l)%dataArr,1)
-         ! write(*,*) 'data', dataSet(k)%dirichletArrays(l)%dataArr
-
          if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
 
-         ! ! else
-            ! write(*,*) 'there is only one bc value'
             bcVarArray(:, :,m) = dataSet(k)%dirichletArrays(l)%dataArr(1)
          else
-
-            do ii = 1, (iSize+1)*(jSize+1)
-               i = mod((ii-1), (iSize+1)) + 1
-               j = (ii-1)/(iSize +1) + 1
-
-
-               qn  = fourth*dataSet(k)%dirichletArrays(l)%dataArr(ii)
+            
+            ! the array of data has a size one less in each dimentions because it only covers the nodes and the 
+            ! bcvararray has cell center data of all the cells + the ghost cells
+            do i = iBeg, iEnd-1
+             do j = jBeg, jEnd-1
+               
+               qn = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)*fourth 
+                
                bcVarArray(i , j, m) = bcVarArray(i , j, m) + qn
                bcVarArray(i+1 , j, m) = bcVarArray(i+1 , j, m) + qn
                bcVarArray(i , j+1, m) = bcVarArray(i , j+1, m) + qn
                bcVarArray(i+1 , j+1, m) = bcVarArray(i+1 , j+1, m) + qn
-            enddo
-
+             end do 
+          end do 
+          
+            
+            ! *2 to get the average value in the ghost cell since only two(one for the corners) nodes
+            ! contribute to the sum
             bcVarArray(iBeg,:,m)  = 2*bcVarArray(iBeg,:,m)
             bcVarArray(iEnd,:,m)  = 2*bcVarArray(iEnd,:,m)
             bcVarArray(:, jBeg, m) = 2*bcVarArray(:, jBeg, m)
             bcVarArray(:, jEnd, m) = 2*bcVarArray(:, jEnd, m)
 
          end if
-
-
-         !  write out bcVarArray
-         !  write(*,*) 'bcVarArray out'
-         !  write(*,*) bcVarArray(:,:, m)
 
        endif
     enddo
@@ -2118,13 +2144,13 @@ contains
     implicit none
 
     ! Input
-    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd, iSize, jSize
-    real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax) :: bcVarArray, bcVarArrayd
+    real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax), intent(inout) :: bcVarArray, bcVarArrayd
+    integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
 
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, i, j, ii
+    integer(kind=intType) :: k, l, m, n, i, j, ii, iSize, jSize
     integer(kind=intType) :: nInter, nDim, nVarPresent, nCoor
 
     integer(kind=intType), dimension(3) :: dataDim, coor
@@ -2144,8 +2170,7 @@ contains
     ! algorithm is perfectly okay. At the moment only the Dirichlet
     ! arrays are checked.
 
-    iSize = iEnd - iBeg - 1
-    jSize = jEnd - jBeg - 1
+    jSize = jEnd - jBeg 
 
     call setBCVarPresent(ind)
 
@@ -2168,23 +2193,29 @@ contains
             bcVarArrayd(:, :,m) = dataSetd(k)%dirichletArrays(l)%dataArr(1)
          else
 
-            do ii = 1, (iSize+1)*(jSize+1)
-               i = mod((ii-1), (iSize+1)) + 1
-               j = (ii-1)/(iSize +1) + 1
-
-               qn  = fourth*dataSet(k)%dirichletArrays(l)%dataArr(ii)
-               bcVarArray(i , j, m) = bcVarArray(i , j, m) + qn
-               bcVarArray(i+1 , j, m) = bcVarArray(i+1 , j, m) + qn
-               bcVarArray(i , j+1, m) = bcVarArray(i , j+1, m) + qn
-               bcVarArray(i+1 , j+1, m) = bcVarArray(i+1 , j+1, m) + qn
-
-               qnd  = fourth*dataSetd(k)%dirichletArrays(l)%dataArr(ii)
-               bcVarArrayd(i , j, m) = bcVarArrayd(i , j, m) + qnd
-               bcVarArrayd(i+1 , j, m) = bcVarArrayd(i+1 , j, m) + qnd
-               bcVarArrayd(i , j+1, m) = bcVarArrayd(i , j+1, m) + qnd
-               bcVarArrayd(i+1 , j+1, m) = bcVarArrayd(i+1 , j+1, m) + qnd
-            enddo
-
+            ! the array of data has a size one less in each dimentions because it only covers the nodes and the 
+            ! bcvararray has cell center data of all the cells + the ghost cells
+            do i = iBeg, iEnd-1
+               do j = jBeg, jEnd-1
+                 
+                 qn = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)*fourth 
+                  
+                 bcVarArray(i , j, m) = bcVarArray(i , j, m) + qn
+                 bcVarArray(i+1 , j, m) = bcVarArray(i+1 , j, m) + qn
+                 bcVarArray(i , j+1, m) = bcVarArray(i , j+1, m) + qn
+                 bcVarArray(i+1 , j+1, m) = bcVarArray(i+1 , j+1, m) + qn
+                 
+                 qnd  = dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)*fourth 
+                 bcVarArrayd(i , j, m) = bcVarArrayd(i , j, m) + qnd
+                 bcVarArrayd(i+1 , j, m) = bcVarArrayd(i+1 , j, m) + qnd
+                 bcVarArrayd(i , j+1, m) = bcVarArrayd(i , j+1, m) + qnd
+                 bcVarArrayd(i+1 , j+1, m) = bcVarArrayd(i+1 , j+1, m) + qnd
+                 
+                
+               end do 
+            end do 
+            
+            
             bcVarArray(iBeg,:,m)  = 2*bcVarArray(iBeg,:,m)
             bcVarArray(iEnd,:,m)  = 2*bcVarArray(iEnd,:,m)
             bcVarArray(:, jBeg, m) = 2*bcVarArray(:, jBeg, m)
@@ -2220,13 +2251,13 @@ contains
     implicit none
 
     ! Input
-    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd, iSize, jSize
-    real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax) :: bcVarArray, bcVarArrayd
+    integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd 
+    real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax), intent(inout) :: bcVarArray, bcVarArrayd
 
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, i, j, ii
+    integer(kind=intType) :: k, l, m, n, i, j, ii, iSize, jSize
     integer(kind=intType) :: nInter, nDim, nVarPresent, nCoor
 
     integer(kind=intType), dimension(3) :: dataDim, coor
@@ -2246,8 +2277,7 @@ contains
     ! algorithm is perfectly okay. At the moment only the Dirichlet
     ! arrays are checked.
 
-    iSize = iEnd - iBeg - 1
-    jSize = jEnd - jBeg - 1
+    jSize = jEnd - jBeg 
     call setBCVarPresent(ind)
 
     ! Find out whether the given data points are equal for every
@@ -2262,17 +2292,9 @@ contains
 
 
 
-         !  write(*,*) 'bcVarArray'
-         !  write(*,*) bcVarArrayd(1, :, m)
-         !  write(*,*) bcVarArrayd(2, :, m)
-         !  write(*,*) bcVarArrayd(3, :, m)
-         !  write(*,*) bcVarArrayd(4, :, m)
-         ! write(*,*) 'iSize, jSize', iSize, jSize, shape(dataSet(k)%dirichletArrays(l)%dataArr)
-         ! write(*,*) 'data', dataSet(k)%dirichletArrays(l)%dataArr
-
          if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
 
-          ! Accumulate. No need to zero.
+            ! Accumulate.
             dataSetd(k)%dirichletArrays(l)%dataArr(1) = dataSetd(k)%dirichletArrays(l)%dataArr(1) &
                                                         + sum(bcVarArrayd(:,:,m))
          else
@@ -2283,23 +2305,26 @@ contains
             bcVarArrayd(:, jEnd, m) = 2*bcVarArrayd(:, jEnd, m)
 
 
-            do ii = 1, (iSize+1)*(jSize+1)
-               i = mod((ii-1), (iSize+1)) + 1
-               j = (ii-1)/(iSize +1) + 1
-
-
-               qnd = zero
-               qnd = qnd + bcVarArrayd(i , j, m)
-               qnd = qnd + bcVarArrayd(i+1 , j, m)
-               qnd = qnd + bcVarArrayd(i , j+1, m)
-               qnd = qnd + bcVarArrayd(i+1 , j+1, m)
-
-
-               dataSetd(k)%dirichletArrays(l)%dataArr(ii) = dataSetd(k)%dirichletArrays(l)%dataArr(ii) + fourth*qnd
-
-            enddo
-
-
+            ! the array of data has a size one less in each dimentions because it only covers the nodes and the 
+            ! bcvararray has cell center data of all the cells + the ghost cells
+            do i = iBeg, iEnd-1
+               do j = jBeg, jEnd-1
+                 
+                  
+                  qnd = zero
+                  qnd = qnd + bcVarArrayd(i , j, m)
+                  qnd = qnd + bcVarArrayd(i+1 , j, m)
+                  qnd = qnd + bcVarArrayd(i , j+1, m)
+                  qnd = qnd + bcVarArrayd(i+1 , j+1, m)
+                  
+                  
+                 dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = &
+                 dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) + fourth*qnd
+  
+          
+               end do 
+            end do 
+            
 
          end if
          bcvararrayd(:, :, m) = 0.0_8
@@ -2313,7 +2338,7 @@ contains
 
   end subroutine extractFromDataSet_b
 
-  subroutine insertToDataSet(BCDataArray, BCDataVarNames)
+  subroutine insertToDataSet(BCDataArray, BCDataVarNames, iBeg, iEnd, jBeg, jEnd)
     !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
@@ -2326,14 +2351,18 @@ contains
     !
     character, dimension(:,:), intent(in) :: BCDataVarNames
     real(kind=realType), dimension(:,:), intent(in):: BCDataArray
+    integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, q,i, lenDataArr
+    integer(kind=intType) :: k, l, m, n, q,i,j, iSize, jSize, idx_bc_arr
     integer(kind=intType) :: ind(2,nbcVar)
     character(len=maxCGNSNameLen) :: varName
 
-
+    iSize = iEnd - iBeg + 1
+    jSize = jEnd - jBeg + 1
+    
     call setBCVarPresent(ind)
     do m=1, size(bcVarPresent,1)
        if( bcVarPresent(m) ) then
@@ -2345,11 +2374,14 @@ contains
 
             if (bcVarNames(m) == varname) then
 
-              lenDataArr = size(dataSet(k)%dirichletArrays(l)%dataArr)
-
-              ! size of array BCDataArray should be checked on python level before
-              ! calling setBCData
-              dataSet(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArray(n,1:lenDataArr)
+              idx_bc_arr= 1
+              do i = iBeg, iEnd
+               do j = jBeg, jEnd
+                  dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArray(n, idx_bc_arr) 
+                  idx_bc_arr = idx_bc_arr + 1
+               end do 
+            end do 
+            
             end if
 
           end do
@@ -2358,7 +2390,7 @@ contains
 
   end subroutine insertToDataSet
 
-  subroutine insertToDataSet_d(BCDataArray, BCDataVarNames, BCDataArrayd)
+  subroutine insertToDataSet_d(BCDataArray, BCDataVarNames, BCDataArrayd,iBeg, iEnd, jBeg, jEnd)
     !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
@@ -2372,14 +2404,18 @@ contains
     character, dimension(:,:), intent(in) :: BCDataVarNames
     real(kind=realType), dimension(:,:), intent(in):: BCDataArray
     real(kind=realType), dimension(:,:), intent(in):: BCDataArrayd
+    integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, q,i, lenDataArr
+    integer(kind=intType) :: k, l, m, n, q, i, j, idx_bc_arr, iSize, jSize
     integer(kind=intType) :: ind(2,nbcVar)
     character(len=maxCGNSNameLen) :: varName
 
-
+    iSize = iEnd - iBeg + 1
+    jSize = jEnd - jBeg + 1
+    
     call setBCVarPresent(ind)
 
     do m=1, size(bcVarPresent,1)
@@ -2389,23 +2425,24 @@ contains
           do n=1, size(BCDataArray,1)
 
             varName = char2str(BCDataVarNames(n,:), maxCGNSNameLen)
-            if (bcVarNames(m) == varname) then
 
-              lenDataArr = size(dataSet(k)%dirichletArrays(l)%dataArr)
-
-              ! size of array BCDataArray should be checked on python level before
-              ! calling setBCData
-              dataSet(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArray(n,1:lenDataArr)
-              dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArrayd(n,1:lenDataArr)
-            end if
-
+            idx_bc_arr= 1
+            do i = iBeg, iEnd
+             do j = jBeg, jEnd
+                dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArray(n, idx_bc_arr) 
+                dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArrayd(n, idx_bc_arr) 
+  
+                idx_bc_arr = idx_bc_arr + 1
+             end do 
+          end do 
+            
           end do
        endif
     enddo
 
   end subroutine insertToDataSet_d
 
-  subroutine insertToDataSet_b(BCDataArray, BCDataVarNames, BCDataArrayd)
+  subroutine insertToDataSet_b(BCDataArray, BCDataVarNames, BCDataArrayd, iBeg, iEnd, jBeg, jEnd)
     !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
@@ -2419,14 +2456,18 @@ contains
     character, dimension(:,:), intent(in) :: BCDataVarNames
     real(kind=realType), dimension(:,:), intent(in):: BCDataArray
     real(kind=realType), dimension(:,:), intent(out):: BCDataArrayd
+    integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, q,i, lenDataArr
+    integer(kind=intType) :: k, l, m, n, q, i, j, idx_bc_arr, iSize, jSize
     integer(kind=intType) :: ind(2,nbcVar)
     character(len=maxCGNSNameLen) :: varName
 
-
+    iSize = iEnd - iBeg + 1
+    jSize = jEnd - jBeg + 1
+    
     call setBCVarPresent(ind)
 
     do m=1, size(bcVarPresent,1)
@@ -2438,15 +2479,25 @@ contains
             varName = char2str(BCDataVarNames(n,:), maxCGNSNameLen)
             if (bcVarNames(m) == varname) then
 
-              lenDataArr = size(dataSet(k)%dirichletArrays(l)%dataArr)
+            !   lenDataArr = size(dataSet(k)%dirichletArrays(l)%dataArr)
 
-              ! size of array BCDataArray should be checked on python level before
-              ! calling setBCData
-            !   dataSet(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArray(n,1:lenDataArr)
-            !   dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArrayd(n,1:lenDataArr)
-              BCDataArrayd(n,1:lenDataArr) = BCDataArrayd(n,1:lenDataArr) + &
-                           dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr)
-              dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = 0
+            !   ! size of array BCDataArray should be checked on python level before
+            !   ! calling setBCData
+            ! !   dataSet(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArray(n,1:lenDataArr)
+            ! !   dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArrayd(n,1:lenDataArr)
+            !   BCDataArrayd(n,1:lenDataArr) = BCDataArrayd(n,1:lenDataArr) + &
+            !                dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr)
+            !   dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = 0
+            
+              idx_bc_arr= 1
+              do i = iBeg, iEnd
+               do j = jBeg, jEnd
+                  BCDataArrayd(n, idx_bc_arr)  = BCDataArrayd(n, idx_bc_arr) + dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)
+    
+                  idx_bc_arr = idx_bc_arr + 1
+               end do 
+            end do 
+            
             end if
 
           end do

@@ -3090,6 +3090,39 @@ class ADFLOW(AeroSolver):
 
         return bc_data
 
+
+    def getBCDataFromBCVarDot(self, bc_ap_dict, bc_dot_ap_dict):
+        """
+        takes a dictionary that represetns the bc_data and converts it the bcdata type used by adflow
+
+        Parameters
+        ----------
+        bc_ap_dict : dict
+            the dictionary of bcdata organized bc_ap_dict[familyGroup][bc variable] = data array
+
+        Returns
+        ----------
+        bc_data : BCData
+            BCData object used by ADflow that organizes the data by Patch, BC Variable
+        """
+        bc_data = self.getBCData(groupNames=bc_ap_dict.keys())
+        bc_data_dot = copy.deepcopy(bc_data)
+        
+        for fam in bc_ap_dict:
+            for var in bc_ap_dict[fam]:
+                bc_data.setBCArraysFlatData(bc_ap_dict[fam][var], var, familyGroup=fam)
+                bc_data_dot.setBCArraysFlatData(0.0, var, familyGroup=fam)
+        
+        # zero the all the derivatives and then set the values from the dot dict.
+        # this is important becuase  bc_data_dot must have the same size as bc_data,
+        #  but there may not any enties in bc_dot_ap_dict
+        for fam in bc_dot_ap_dict:
+            for var in bc_dot_ap_dict[fam]:
+                bc_data_dot.setBCArraysFlatData(bc_dot_ap_dict[fam][var], var, familyGroup=fam)
+
+        return bc_data, bc_data_dot
+
+
     def getBCVarBarFromBCDataBar(self, bc_data, bc_var_dict):
         """
         converts a BCData object which holds derivatives seeds and converts it to a dictinary that can be passed to
@@ -3142,24 +3175,22 @@ class ADFLOW(AeroSolver):
             # BCData[family] = {}
             # BCDataArray, BCVarNames, _ = self.getBCDataPatches(groupName=family)
 
+            patchLoc, _, patchNumBCVar, _, patchLocalIIndices, patchLocalJIndices = \
+                                self.getPatchInfo( groupName=family)
+            
+            BCDataArrSize = (patchLocalIIndices[:,-1] - patchLocalIIndices[:,0] +1 ) * \
+                              (patchLocalJIndices[:,-1] - patchLocalJIndices[:,0] +1 )
+            
+            # only continue if there is data
+            if BCDataArrSize.size != 0:
+                MaxBCDataArrSize = numpy.max(BCDataArrSize)
+                
+                BCDataArrays, BCDataVarNames = \
+                self.adflow.bcdata.getbcdata(TS+1, patchLoc, patchNumBCVar, \
+                                            numpy.sum(patchNumBCVar), MaxBCDataArrSize)
 
-            patchLoc, _, patchNumBCVar, _, patchNumNodes = \
-                        self.getPatchData(groupName=family)
-
-            if patchNumNodes.size != 0:
-
-                BCDataArrays, BCDataVarNames, BCDataArrSizes = \
-                self.adflow.bcdata.getbcdata(TS+1, patchLoc, patchNumBCVar, patchNumNodes,\
-                                            numpy.sum(patchNumBCVar), numpy.max(patchNumNodes))
-
-                patchLocArray = numpy.zeros((0,2), dtype=numpy.intc)
-                for idx_patch in range(len(patchLoc)):
-                    for _ in range(patchNumBCVar[idx_patch]):
-                        patchLocArray = numpy.vstack((patchLocArray, patchLoc[idx_patch]))
-
-                data = self._convertFortBCDataToBCData(BCDataArrays, BCDataVarNames, BCDataArrSizes, patchLoc, patchNumBCVar, [family]*len(patchLoc))
+                data = self._convertFortBCDataToBCData(BCDataArrays, BCDataVarNames, BCDataArrSize, patchLoc, patchNumBCVar, [family]*len(patchLoc))
                 bc_data.update(data)
-
 
         return bc_data
 
@@ -3343,26 +3374,29 @@ class ADFLOW(AeroSolver):
         return bc_data
 
 
-    def getPatchData(self, groupName=None, TS=0):
+    def getPatchInfo(self, groupName=None, TS=0):
         """
 
         """
         famList = self._getFamilyList(groupName)
 
         # groupArray = self._expandGroupNames(groupName)
-        numPatches = self.adflow.bcdata.getnumpatches(TS+1, famList)
+        numPatches = self.adflow.bcdata.getnumpatches(TS + 1, famList)
 
-        patchLoc  = numpy.zeros((numPatches,2), order='F', dtype=numpy.intc)
+        patchLoc  = numpy.zeros((numPatches, 2), order='F', dtype=numpy.intc)
         patchBCType = numpy.zeros(numPatches, order='F', dtype=numpy.intc)
         patchNumBCVar = numpy.zeros(numPatches, order='F', dtype=numpy.intc)
         patchFamID = numpy.zeros(numPatches, order='F', dtype=numpy.intc)
         patchNumNodes = numpy.zeros(numPatches, order='F', dtype=numpy.intc)
+        patchLocalIIndices  = numpy.zeros((numPatches, 2), order='F', dtype=numpy.intc)
+        patchLocalJIndices  = numpy.zeros((numPatches, 2), order='F', dtype=numpy.intc)
 
-        self.adflow.bcdata.getpatchdata(TS+1, famList, patchLoc, \
-                                                    patchBCType, patchNumBCVar,\
-                                                    patchFamID, patchNumNodes)
+        self.adflow.bcdata.getpatchinfo(TS+1, famList, patchLoc, \
+                                            patchBCType, patchNumBCVar,\
+                                            patchFamID, \
+                                            patchLocalIIndices, patchLocalJIndices)
 
-        return patchLoc, patchBCType, patchNumBCVar, patchFamID, patchNumNodes
+        return patchLoc, patchBCType, patchNumBCVar, patchFamID, patchLocalIIndices, patchLocalJIndices
 
     def getBCDataPatches(self, groupName=None, TS=0):
         """
@@ -3423,18 +3457,15 @@ class ADFLOW(AeroSolver):
         """
 
 
-        # call the fotran level routine get the data from the mesh
-        # BCData,  BCDataVarNames = self.adflow.bcdata.getbcdata(1)
-        #  numpy.zeros((self.adflow.block.ndom, 6, 6), dtype=numpy.intc, order='F')
-        patchLoc, _, patchNumBCVar, _, patchNumNodes = \
-                    self.getPatchData( groupName=groupName)
-
-        # BCAllPatchData = PatchData[PatchData[:,:,-1] > 0]
-
+        # call the fotran level routine to get information about the patches
+        patchLoc, _, patchNumBCVar, _, pathcLocalIIndices, patcLocalJIndices = \
+                    self.getPatchInfo( groupName=groupName)
+        
+        
         nBCArrays = numpy.sum(patchNumBCVar)
 
         if nBCArrays == 0:
-            # return empty lists
+            # DON'T call the fortran routines, just return empty lists
             BCDataArrays = [[]]
             BCDataVarNames = [[]]
             BCPatchData = [[]]
@@ -3442,11 +3473,9 @@ class ADFLOW(AeroSolver):
             # get the bcdata
             maxArraySize = numpy.max(patchNumNodes)
             BCDataArraysFortran, BCDataVarNamesFortran, BCDataArrSizes = \
-            self.adflow.bcdata.getbcdata(TS+1, patchLoc, patchNumBCVar, patchNumNodes,\
+            self.adflow.bcdata.getbcdata(TS+1, patchLoc, patchNumBCVar,
+                                            patchNumNodes,\
                                           nBCArrays, maxArraySize)
-            # if groupName is None:
-            #     groupName = self.allWallsGroup
-
 
             # remove the array padding needed for fortran
             BCDataVarNames = []
@@ -4432,9 +4461,8 @@ class ADFLOW(AeroSolver):
             actDvsDot = {}
 
         extradot = self._getExtraDot(aeroDvsDot)
-        bc_data_dot = self.getBCDataFromBCVar(bcDvsDot)
-        bc_data = self.getBCDataFromBCVar(self.curAP.getBCVars())
-
+        bc_data, bc_data_dot = self.getBCDataFromBCVarDot(self.curAP.getBCVars(), bcDvsDot)
+        
         for group in actDvsDot:
             for actVar in actDvsDot[group]:
                 actDataDot[group][actVar] = actDvsDot[group][actVar]
@@ -6480,7 +6508,7 @@ class BCData(object):
 
         Parameters
         ----------
-        data : 1-D np.array
+        data : 1-D np.array or a scaler 
             the flattened data to be set
         bc_var : string
             the name of the BC variable the data corresponds to
