@@ -1965,8 +1965,8 @@ contains
           ! we need to be carful here becuase the dataArr is not split when the face is split across processors. 
           ! thus we need to only take the peice given by the range of iBeg,iEnd,jBeg,jEnd
           idx_bc_arr = 1
-         do i = iBeg, iEnd
-            do j = jBeg, jEnd
+          do j = jBeg, jEnd
+            do i = iBeg, iEnd
                bcVarArrays(ii, idx_bc_arr) = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)
                idx_bc_arr = idx_bc_arr + 1
             end do 
@@ -2375,8 +2375,8 @@ contains
             if (bcVarNames(m) == varname) then
 
               idx_bc_arr= 1
-              do i = iBeg, iEnd
-               do j = jBeg, jEnd
+              do j = jBeg, jEnd
+               do i = iBeg, iEnd
                   dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArray(n, idx_bc_arr) 
                   idx_bc_arr = idx_bc_arr + 1
                end do 
@@ -2427,8 +2427,8 @@ contains
             varName = char2str(BCDataVarNames(n,:), maxCGNSNameLen)
 
             idx_bc_arr= 1
-            do i = iBeg, iEnd
-             do j = jBeg, jEnd
+            do j = jBeg, jEnd
+               do i = iBeg, iEnd
                 dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArray(n, idx_bc_arr) 
                 dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArrayd(n, idx_bc_arr) 
   
@@ -2490,8 +2490,8 @@ contains
             !   dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = 0
             
               idx_bc_arr= 1
-              do i = iBeg, iEnd
-               do j = jBeg, jEnd
+              do j = jBeg, jEnd
+               do i = iBeg, iEnd
                   BCDataArrayd(n, idx_bc_arr)  = BCDataArrayd(n, idx_bc_arr) + dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)
     
                   idx_bc_arr = idx_bc_arr + 1
