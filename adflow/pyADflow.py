@@ -6497,8 +6497,13 @@ class BCData(object):
 
     def getBCArraysFlatData(self,bc_var, **kwargs):
         data = self.getBCArraysData(bc_var, **kwargs)
-        data = numpy.array(data).flatten()
-        return data
+        
+        flat_list = []
+        for sublist in data:
+            for item in sublist:
+                flat_list.append(item)
+                
+        return numpy.array(flat_list)
 
     def setBCArraysFlatData(self, data, bc_var, **kwargs):
         """
