@@ -144,13 +144,13 @@ python module libadflow
 
 
 
-         subroutine getbcdata(sps, patchloc, patchnumbcvar, nbcarrays, maxpatchsize, bcdataarray, bcdatavarnames)
+         subroutine getbcdata(sps, patchloc, patchnumbcvar, nbcarrays, maxpatchsize, bcdataarray, bcdatavarnames, bcdataarrsizes)
            integer(kind=inttype), intent(in) ::  sps
            integer(kind=inttype), dimension(:,: ), intent(in) :: patchloc
            integer(kind=inttype), dimension(:), intent(in) ::    patchnumbcvar
            integer(kind=inttype), intent(in) ::  nbcarrays
            integer(kind=inttype), intent(in) ::  maxpatchsize
-           
+           integer(kind=inttype), dimension(nbcarrays), intent(out) :: bcdataarrsizes
            real(kind=realtype), dimension(nbcarrays,maxpatchsize), intent(out) :: bcdataarray
            character, dimension(nbcarrays,32), intent(out) :: bcdatavarnames
           end subroutine getbcdata

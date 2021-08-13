@@ -24,7 +24,8 @@ class BCGetSetTests(unittest.TestCase):
 
     def setUp(self):
         gridFile = os.path.join(baseDir, '../input_files/conic_conv_nozzle_mb_L4.cgns')
-        self.options = {'gridfile': gridFile}
+        self.options = {'gridfile': gridFile, 
+                        'equationType' : 'Euler'}
 
 
         # Aerodynamic problem description (taken from test 17)
@@ -152,7 +153,8 @@ class BCDVTests(unittest.TestCase):
 
     def setUp(self):
         gridFile = os.path.join(baseDir, '../input_files/conic_conv_nozzle_mb_L4.cgns')
-        self.options = {'gridfile': gridFile}
+        self.options = {'gridfile': gridFile,
+                        'equationType': 'Euler'}
 
         ap = AeroProblem(name='nozzle_flow', alpha=90, mach=0.5, altitude=0,
                     areaRef=1.0, chordRef=1.0, R=287.87,
@@ -235,13 +237,13 @@ class BCDVTests(unittest.TestCase):
         ap.setBCVar(BCVar,  70000.0, group)
         ap.addDV(BCVar,  name='outlet_pressure',  familyGroup=group,)
 
-        DVs = {'outlet_pressure':np.arange(1,5*9+1)*10**5}
-
+        DVs = {'outlet_pressure':np.arange(1,(4*9 + 1)+1)*10**5}
         ap.setDesignVars(DVs)
         assert (ap.getBCVars()[group][BCVar] == DVs['outlet_pressure']).all()
 
         CFDSolver.setAeroProblem(ap)
         bc_data = CFDSolver.getBCData(groupNames=[group])
+        # import pdb; pdb.set_trace()
         for ii, d in enumerate(bc_data.getBCArraysFlatData(BCVar, familyGroup=group)):
             assert d == DVs['outlet_pressure'][ii]
 
@@ -255,7 +257,8 @@ class BCDerivsTests(unittest.TestCase):
         gridFile = os.path.join(baseDir, '../input_files/conic_conv_nozzle_mb_L4.cgns')
         intSurfFile = os.path.join(baseDir, '../input_files/integration_plane_viscous.fmt')
 
-        self.options = {'gridfile': gridFile}
+        self.options = {'gridfile': gridFile,
+                        'equationType': 'Euler'}
 
         self.options['mgstartlevel'] = 1
 
@@ -342,9 +345,9 @@ class BCDerivsTests(unittest.TestCase):
 
         resDot, funcsDot, fDot, hfDot = self.CFDSolver.computeJacobianVectorProductFwd(
         xDvDot=xDvDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode='AD')
-
         resDot_FD, funcsDot_FD, fDot_FD, hfDot_FD = self.CFDSolver.computeJacobianVectorProductFwd(
         xDvDot=xDvDot, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode='FD', h=1e-0)
+    
         np.testing.assert_allclose(resDot_FD,resDot, atol=1e-8)
         # atol used here because the FD can return an error order 1e-15, but the rel error is nan since it should be 0
         for func in funcsDot:
@@ -543,7 +546,8 @@ class BCNodalDerivsTests_serial(unittest.TestCase):
         gridFile = os.path.join(baseDir, '../input_files/conic_conv_nozzle_mb_L4_array.cgns')
         intSurfFile = os.path.join(baseDir, '../input_files/integration_plane_viscous.fmt')
 
-        self.options = {'gridfile': gridFile}
+        self.options = {'gridfile': gridFile,
+                        'equationType': 'Euler'}
 
         self.options['mgstartlevel'] = 1
         self.options['mgstartlevel'] = 1
@@ -600,7 +604,7 @@ class BCNodalDerivsTests_serial(unittest.TestCase):
         group = 'outlet'
         BCVar = 'Pressure'
         DV = 'outlet_pressure'
-        n =  5*9
+        n =  4*9+1
         ap = self.ap
         self.CFDSolver.setAeroProblem(self.ap)
 
@@ -645,7 +649,7 @@ class BCNodalDerivsTests_serial(unittest.TestCase):
         BCVar = 'Pressure'
 
         resDot_dict, funcsDot_dict, fDot_dict, hfDot_dict = self.CFDSolver.computeJacobianVectorProductFwd(
-        xDvDot={'outlet_pressure': np.ones(5*9)}, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode='AD')
+        xDvDot={'outlet_pressure': np.ones(4*9+1)}, residualDeriv=True, funcDeriv=True, fDeriv=True, hfDeriv=True, mode='AD')
 
         np.testing.assert_allclose(resDot_dict,resDot, atol=1e-20)
 
@@ -661,7 +665,7 @@ class BCNodalDerivsTests_serial(unittest.TestCase):
         group = 'outlet'
         BCVar = 'Pressure'
         DV = 'outlet_pressure'
-        n =  5*9
+        n =  4*9+1
         ap = self.ap
         self.CFDSolver.setAeroProblem(self.ap)
 
@@ -700,7 +704,8 @@ class BCNodalDerivsTests_parallel(unittest.TestCase):
         gridFile = os.path.join(baseDir, '../input_files/conic_conv_nozzle_mb_L4_array.cgns')
         intSurfFile = os.path.join(baseDir, '../input_files/integration_plane_viscous.fmt')
 
-        self.options = {'gridfile': gridFile}
+        self.options = {'gridfile': gridFile,
+                        'equationType': 'Euler'}
 
         self.options['mgstartlevel'] = 1
         self.options['mgstartlevel'] = 1

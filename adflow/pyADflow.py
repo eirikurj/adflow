@@ -28,6 +28,7 @@ import types
 import numpy
 import sys
 from mpi4py import MPI
+from numpy.lib.financial import ipmt
 from petsc4py import PETSc
 from baseclasses import AeroSolver, AeroProblem, getPy3SafeString
 from baseclasses.utils import Error
@@ -894,7 +895,7 @@ class ADFLOW(AeroSolver):
 
             # Check if the goupName has been added to the mesh.
             if groupName is not None:
-                if groupName not in self.families:
+                if groupName not in self.familyGroups:
                     raise Error(
                         "'%s' is not a family in the CGNS file or has not been added"
                         " as a combination of families" % (groupName)
@@ -3185,13 +3186,14 @@ class ADFLOW(AeroSolver):
             if BCDataArrSize.size != 0:
                 MaxBCDataArrSize = numpy.max(BCDataArrSize)
                 
-                BCDataArrays, BCDataVarNames = \
+                BCDataArrays, BCDataVarNames, BCDataArrSize = \
                 self.adflow.bcdata.getbcdata(TS+1, patchLoc, patchNumBCVar, \
                                             numpy.sum(patchNumBCVar), MaxBCDataArrSize)
-
+                
+                print(BCDataArrSize)
+                
                 data = self._convertFortBCDataToBCData(BCDataArrays, BCDataVarNames, BCDataArrSize, patchLoc, patchNumBCVar, [family]*len(patchLoc))
                 bc_data.update(data)
-
         return bc_data
 
     def _splitBCDataForPatches(self, BCData):
@@ -3271,6 +3273,7 @@ class ADFLOW(AeroSolver):
             sets the bcdata for a given aeroproblem
         """
         BCArrays,  BCVarNames, _, patchLoc, nBCVars, _  = self._convertBCDataToFortBCData(bc_data)
+        
         self.adflow.bcdata.setbcdata(TS+1, BCArrays, BCVarNames, patchLoc, nBCVars)
 
     def _convertBCDataToFortBCData(self, bc_data):

@@ -58,6 +58,7 @@ module block
 
      integer(kind=intType) :: inBeg, inEnd, jnBeg, jnEnd
      integer(kind=intType) :: icBeg, icEnd, jcBeg, jcEnd
+     integer(kind=intType) :: inBegor, inEndor, jnBegor, jnEndor
 
      ! norm(:,:,3):  The unit normal; it points out of the domain.
      ! rface(:,:):   Velocity of the face in the direction of the

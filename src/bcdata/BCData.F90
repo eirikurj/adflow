@@ -1477,33 +1477,27 @@ contains
          nDataSet = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%nDataSet
          dataSet => cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%dataSet
 
+         
+         
          ! check to see if the BC has a type requires it to have data
-
-         iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
-         jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
-
-         iSize = iEnd - iBeg + 1
-         jSize = jEnd - jBeg + 1
-
-
-         ! Determine the boundary condition we are having here and
-         ! call the appropriate routine.
          famInclude: if (famInList(BCdata(j)%famID, famList(:))) then
             idx = idx + 1
             patchLoc(idx,1) = i
             patchLoc(idx,2) = j
-
+            
             patchBCType(idx) = BCType(j)
             patchFamID(idx) = BCData(j)%famID
             
-            patchLocalIIndices(idx,  1) = iBeg
-            patchLocalIIndices(idx, 2) = iEnd
+            patchLocalIIndices(idx,  1) = BCData(j)%inBegor
+            patchLocalIIndices(idx, 2) = BCData(j)%inEndor
             
-            patchLocalJIndices(idx,  1) = jBeg
-            patchLocalJIndices(idx, 2) = jEnd
+            patchLocalJIndices(idx,  1) = BCData(j)%jnBegor
+            patchLocalJIndices(idx, 2) = BCData(j)%jnEndor
             
             
-
+            
+            ! Determine the boundary condition we are having here and
+            ! call the appropriate routine.
             select case (BCType(j))
 
             case (NSWallIsothermal)
@@ -1557,13 +1551,13 @@ contains
 
 
   subroutine getBCData(sps, patchLoc, patchNumBCVar, nBCArrays, &
-                       maxPatchSize, BCDataArray, BCDataVarNames)
+                       maxPatchSize, BCDataArray, BCDataVarNames, BCDataArrSizes)
    ! TODO get Sandy's feed back on this code
     !  gets the given bcData array
 
     use constants
     use cgnsNames
-    use blockPointers, only : BCData, nDom, nBocos, nBKGlobal, cgnsSubFace, BCType
+    use blockPointers, only : BCFaceID, BCData, nDom, nBocos, nBKGlobal, cgnsSubFace, BCType
     use sorting, only : famInList
     use utils, only : setPointers,terminate, char2str
     use communication, only : myid
@@ -1571,6 +1565,7 @@ contains
     !
     !      Subroutine arguments.
     !
+    implicit none
     integer(kind=intType), intent(in) ::  sps
       ! time spectral instance
     integer(kind=inttype), intent(in) ::  nBCArrays
@@ -1579,9 +1574,11 @@ contains
     integer(kind=intType), dimension(:), intent(in) ::    patchNumBCVar
 
     real(kind=realType), dimension(nBCArrays,maxPatchSize), intent(out) :: BCDataArray
-      ! bc data to be set
+
+    ! bc data to be set
     character, dimension(nBCArrays,maxCGNSNameLen), intent(out) :: BCDataVarNames
       ! name of the physical quantity that the data array applies to ('Temperature' , 'Pressure', ect.)
+    integer(kind=intType), dimension(nBCArrays), intent(out) :: BCDataArrSizes
     
    !  ! the subset of the patch face on this processor using...
    !  ! the i indices of the start and end of the local subset
@@ -1593,8 +1590,11 @@ contains
     !      Local variables.
     !
     integer(kind=intType) :: i, iarray, j, k, m, nNodes, ii,  idx, mm
-    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd
-    
+    integer(kind=intType) :: &
+                  iBeg, iEnd, jBeg, jEnd, &  ! start and end indices for bcdata at the cell centers
+                  inBegor, inEndor, jnBegor, jnEndor, & ! nodal incides ranges of the subface w.r.t. the original cgsnDom Block
+                  cgns_subface_isize, cgns_subface_jsize ! nodal sizes of the subface of the original cgsnDom Block
+
     character(maxCGNSNameLen) :: varName
 
    idx = 1
@@ -1633,14 +1633,36 @@ contains
             'This is not a valid boundary condtion for getBCData')
       end select
 
-      iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
-      jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
+      select case (BCFaceID(j))
+
+      case (iMin,iMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+         
+      case (jMin,jMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+         
+      case (kMin,kMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+         
+      end select
       
-      call extractPatchData(iBeg, iEnd, jBeg, jEnd, BCDataArray(idx:idx+m-1, :), BCDataVarNames(idx:idx+m, :))
+      
+      inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
+      jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
+      
+      write(*,*) 'ib', inBegor, 'ie', inEndor, 'jb', jnBegor, 'je', jnEndor, cgns_subface_jsize, cgns_subface_isize
+      call extractPatchData(inBegor, inEndor, jnBegor, jnEndor,&
+                            cgns_subface_isize, cgns_subface_jsize,&
+                            BCDataArray(idx:idx+m-1, :), BCDataVarNames(idx:idx+m, :), BCDataArrSizes(idx:idx+m))
 
       idx = idx + m
    end do
 
+   ! call terminate("getBCData", &
+   ! "stop here")
   end subroutine getBCData
 
   subroutine setBCData(sps, BCDataArray, BCDataVarNames, patchLoc, &
@@ -1650,11 +1672,12 @@ contains
 
     use constants
     use cgnsNames
-    use blockPointers, only : BCData, nDom, nBocos, nBKGlobal, cgnsSubFace, BCType
+    use blockPointers, only : BCFaceID, BCData, nDom, nBocos, nBKGlobal, cgnsSubFace, BCType
     use sorting, only : famInList
     use utils, only : setPointers,terminate, char2str
     use communication, only : myid
     use actuatorRegionData, only : actuatorRegions, nActuatorRegions
+    implicit None
     !
     !      Subroutine arguments.
     !
@@ -1675,8 +1698,11 @@ contains
     !      Local variables.
     !
     integer(kind=intType) :: i, iarray, j, k, m, ii,  idx, mm
-    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd
-    
+    integer(kind=intType) :: &
+         iBeg, iEnd, jBeg, jEnd, &  ! start and end indices for bcdata at the cell centers
+         inBegor, inEndor, jnBegor, jnEndor, & ! nodal incides ranges of the subface w.r.t. the original cgsnDom Block
+         cgns_subface_isize, cgns_subface_jsize ! nodal sizes of the subface of the original cgsnDom Block
+
     character(maxCGNSNameLen) :: varName
 
    idx = 1
@@ -1713,11 +1739,31 @@ contains
          cycle
       end select
 
-      iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
-      jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
-   
+      select case (BCFaceID(j))
+
+      case (iMin,iMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+         
+      case (jMin,jMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+         
+      case (kMin,kMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+         
+      end select
+      
+      
+      inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
+      jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
+      
+      write(*,*) 'ib', inBegor, 'ie', inEndor, 'jb', jnBegor, 'je', jnEndor
+
       call insertToDataSet(BCDataArray(idx:idx+m-1,:),&
-                           BCDataVarNames(idx:idx+m-1, :), iBeg, iEnd, jBeg, jEnd)
+                           BCDataVarNames(idx:idx+m-1, :), inBegor, inEndor, jnBegor, jnEndor, &
+                           cgns_subface_isize, cgns_subface_jsize)
 
       idx = idx + m
 
@@ -1732,11 +1778,12 @@ contains
 
     use constants
     use cgnsNames
-    use blockPointers, only : BCData, nDom, nBocos, nBKGlobal, cgnsSubFace, BCType
+    use blockPointers, only : BCFaceID, BCData, nDom, nBocos, nBKGlobal, cgnsSubFace, BCType
     use sorting, only : famInList
     use utils, only : setPointers_d,terminate, char2str
     use communication, only : myid
     use actuatorRegionData, only : actuatorRegions, nActuatorRegions
+    implicit None
     !
     !      Subroutine arguments.
     !
@@ -1760,8 +1807,11 @@ contains
     !      Local variables.
     !
     integer(kind=intType) :: i, iarray, j, k, m, ii,  idx, mm
-    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd
-    
+    integer(kind=intType) :: &
+         iBeg, iEnd, jBeg, jEnd, &  ! start and end indices for bcdata at the cell centers
+         inBegor, inEndor, jnBegor, jnEndor, & ! nodal incides ranges of the subface w.r.t. the original cgsnDom Block
+         cgns_subface_isize, cgns_subface_jsize ! nodal sizes of the subface of the original cgsnDom Block
+
     character(maxCGNSNameLen) :: varName
 
    idx = 1
@@ -1800,11 +1850,34 @@ contains
          cycle
       end select
 
-      iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
-      jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
-   
+      select case (BCFaceID(j))
+
+      case (iMin,iMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+         
+      case (jMin,jMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+         
+      case (kMin,kMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+         
+      end select
+      
+      
+      inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
+      jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
+      
+      write(*,*) 'ib', inBegor, 'ie', inEndor, 'jb', jnBegor, 'je', jnEndor
+
       call insertToDataSet_d(BCDataArray(idx:idx+m-1,:),&
-                           BCDataVarNames(idx:idx+m-1, :), BCDataArrayd(idx:idx+m-1,:), iBeg, iEnd, jBeg, jEnd)
+                           BCDataVarNames(idx:idx+m-1, :), inBegor, inEndor, jnBegor, jnEndor, &
+                           cgns_subface_isize, cgns_subface_jsize, BCDataArrayd(idx:idx+m-1,:))
+
+      ! call insertToDataSet_d(BCDataArray(idx:idx+m-1,:),&
+      !                      BCDataVarNames(idx:idx+m-1, :), BCDataArrayd(idx:idx+m-1,:), iBeg, iEnd, jBeg, jEnd)
     
 
       idx = idx + m
@@ -1821,11 +1894,12 @@ contains
 
     use constants
     use cgnsNames
-    use blockPointers, only : BCData, nDom, nBocos, nBKGlobal, cgnsSubFace, BCType
+    use blockPointers, only : BCFaceID, BCData, nDom, nBocos, nBKGlobal, cgnsSubFace, BCType
     use sorting, only : famInList
     use utils, only : setPointers_b,terminate, char2str
     use communication, only : myid
     use actuatorRegionData, only : actuatorRegions, nActuatorRegions
+    implicit none
     !
     !      Subroutine arguments.
     !
@@ -1850,8 +1924,11 @@ contains
     !      Local variables.
     !
     integer(kind=intType) :: i, iarray, j, k, m, ii,  idx, mm
-    integer(kind=intType) :: iBeg, iEnd, jBeg, jEnd
     character(maxCGNSNameLen) :: varName
+    integer(kind=intType) :: &
+         iBeg, iEnd, jBeg, jEnd, &  ! start and end indices for bcdata at the cell centers
+         inBegor, inEndor, jnBegor, jnEndor, & ! nodal incides ranges of the subface w.r.t. the original cgsnDom Block
+         cgns_subface_isize, cgns_subface_jsize ! nodal sizes of the subface of the original cgsnDom Block
 
    idx = 1
    do ii = 1,size(patchLoc,1)
@@ -1888,21 +1965,42 @@ contains
          end if
          cycle
       end select
+      select case (BCFaceID(j))
 
-      iBeg = BCData(j)%inBeg; iEnd = BCData(j)%inEnd
-      jBeg = BCData(j)%jnBeg; jEnd = BCData(j)%jnEnd
-   
+      case (iMin,iMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+         
+      case (jMin,jMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+         
+      case (kMin,kMax)
+         cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+         cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+         
+      end select
+      
+      
+      inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
+      jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
+      
+      write(*,*) 'ib', inBegor, 'ie', inEndor, 'jb', jnBegor, 'je', jnEndor
+
       call insertToDataSet_b(BCDataArray(idx:idx+m-1,:),&
-                             BCDataVarNames(idx:idx+m-1, :),&
-                             BCDataArrayd(idx:idx+m-1,:), iBeg, iEnd, jBeg, jEnd )
+                           BCDataVarNames(idx:idx+m-1, :), inBegor, inEndor, jnBegor, jnEndor, &
+                           cgns_subface_isize, cgns_subface_jsize,BCDataArrayd(idx:idx+m-1,:) )
+   
       idx = idx + m
+
 
    end do
 
   end subroutine setBCData_b
 
-
-  subroutine extractPatchData(iBeg, iEnd, jBeg, jEnd, bcVarArrays, BCDataVarNames)
+  subroutine extractPatchData(iBeg, iEnd, jBeg, jEnd, &
+                              cgns_subface_isize, cgns_subface_jsize, &
+                              bcVarArrays, BCDataVarNames, BCDataArrSizes)
       !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
@@ -1919,9 +2017,11 @@ contains
     use utils, only : terminate
     implicit none
     integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    integer(kind=intType), intent(in) :: cgns_subface_isize, cgns_subface_jsize
+
     real(kind=realType), dimension(:,:), intent(out) :: bcVarArrays
     character, dimension(:,:), intent(out) :: BCDataVarNames
-    
+    integer(kind=intType), dimension(:) :: BCDataArrSizes
     !
     !      Local variables.
     !
@@ -1943,11 +2043,10 @@ contains
     ! variables specified is usually not so big, a linear search
     ! algorithm is perfectly okay. At the moment only the Dirichlet
     ! arrays are checked.
-    iSize = iEnd - iBeg + 1
-    jSize = jEnd - jBeg + 1
     
     call setBCVarPresent(ind)
 
+    write(*,*) "extracting patch data"
     ii = 1
     do m=1,nbcVar
        if( bcVarPresent(m) ) then
@@ -1962,17 +2061,32 @@ contains
           end do
           
          
-          ! we need to be carful here becuase the dataArr is not split when the face is split across processors. 
-          ! thus we need to only take the peice given by the range of iBeg,iEnd,jBeg,jEnd
-          idx_bc_arr = 1
-          do j = jBeg, jEnd
-            do i = iBeg, iEnd
-               bcVarArrays(ii, idx_bc_arr) = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)
-               idx_bc_arr = idx_bc_arr + 1
-            end do 
-         end do 
+          ! the bc data is either of size one or the same size as the patch
           
 
+         idx_bc_arr = 1
+         
+         
+         if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
+
+            bcVarArrays(ii, idx_bc_arr) = dataSet(k)%dirichletArrays(l)%dataArr(1)
+         else  
+            ! we need to be carful here becuase the dataArr is not split when the face is split across processors. 
+            ! thus we need to only take the peice given by the range of iBeg,iEnd,jBeg,jEnd
+            ! the loop order here also neeeds to match the order of the surface points
+            do j = jBeg, jEnd
+               do i = iBeg, iEnd
+                  bcVarArrays(ii, idx_bc_arr) = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j)
+                  write(*,*) 'i,j,ii',i, j, idx_bc_arr, (i-1)*cgns_subface_jsize+j, 'val', bcVarArrays(ii, idx_bc_arr) 
+                  idx_bc_arr = idx_bc_arr + 1
+               end do 
+            end do 
+            
+         endif
+
+         
+         BCDataArrSizes(ii) = idx_bc_arr
+         
          ii = ii + 1
 
        endif
@@ -1992,6 +2106,9 @@ contains
     nVarPresent = 0
 
 
+    do m=1,nbcVarMax
+      bcVarPresent(m) = .false.
+    end do 
 
     do m=1,nbcVar
        bcVarPresent(m) = .false.
@@ -2025,7 +2142,9 @@ contains
     enddo
   end subroutine setBCVarPresent
 
-  subroutine extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+  subroutine extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, inBegor, &
+                                       inEndor, jnBegor, jnEndor,&
+                                       cgns_subface_isize, cgns_subface_jsize)
       !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
@@ -2042,12 +2161,14 @@ contains
     use utils, only : terminate
     implicit none
     integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    integer(kind=intType), intent(in) :: inBegor, inEndor, jnBegor, jnEndor
+    integer(kind=intType), intent(in) :: cgns_subface_isize, cgns_subface_jsize
     real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax), intent(out) :: bcVarArray
 
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, i, j, ii, iSize, jSize
+    integer(kind=intType) :: k, l, m, n, i, j, i_tmp, j_tmp, ii, iSize, jSize, i_loc, j_loc
     integer(kind=intType) :: nInter, nDim, nVarPresent, nCoor
 
     integer(kind=intType), dimension(3) :: dataDim, coor
@@ -2066,7 +2187,7 @@ contains
     ! arrays are checked.
 
     nVarPresent = 0
-    jSize = jEnd - jBeg 
+
     call setBCVarPresent(ind)
 
     ! Find out whether the given data points are equal for every
@@ -2077,9 +2198,11 @@ contains
        if( bcVarPresent(m) ) then
           k = ind(1,m)
           l = ind(2,m)
-
+          
          bcVarArray(:, :,m) = 0
-
+         ! write(6,*) 'bcVarArray size', size(bcVarArray(:,:,m)),  size(bcVarArray(:,:,m),1), size(bcVarArray(:,:,m),2)
+         
+         
          if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
 
             bcVarArray(:, :,m) = dataSet(k)%dirichletArrays(l)%dataArr(1)
@@ -2087,30 +2210,47 @@ contains
             
             ! the array of data has a size one less in each dimentions because it only covers the nodes and the 
             ! bcvararray has cell center data of all the cells + the ghost cells
-            do i = iBeg, iEnd-1
-             do j = jBeg, jEnd-1
+            do i = inBegor, inEndOr
+               do j = jnBegor, jnEndor
                
-               qn = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)*fourth 
-                
-               bcVarArray(i , j, m) = bcVarArray(i , j, m) + qn
-               bcVarArray(i+1 , j, m) = bcVarArray(i+1 , j, m) + qn
-               bcVarArray(i , j+1, m) = bcVarArray(i , j+1, m) + qn
-               bcVarArray(i+1 , j+1, m) = bcVarArray(i+1 , j+1, m) + qn
-             end do 
-          end do 
+               qn = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j)*fourth 
+               ! write(6,*) 'i,j', i,j, 'idx', (i-1)*cgns_subface_jsize+j, 'val', qn*4
+               
+               i_loc = (i - inBegor) + iBeg
+               j_loc = (j - jnBegor) + jBeg
+               
+               bcVarArray(i_loc , j_loc, m) = bcVarArray(i_loc , j_loc, m) + qn
+               bcVarArray(i_loc+1 , j_loc, m) = bcVarArray(i_loc+1 , j_loc, m) + qn
+               bcVarArray(i_loc , j_loc+1, m) = bcVarArray(i_loc , j_loc+1, m) + qn
+               bcVarArray(i_loc+1 , j_loc+1, m) = bcVarArray(i_loc+1 , j_loc+1, m) + qn
+
+               end do 
+               
+
+               
+            end do 
           
-            
             ! *2 to get the average value in the ghost cell since only two(one for the corners) nodes
             ! contribute to the sum
             bcVarArray(iBeg,:,m)  = 2*bcVarArray(iBeg,:,m)
             bcVarArray(iEnd,:,m)  = 2*bcVarArray(iEnd,:,m)
             bcVarArray(:, jBeg, m) = 2*bcVarArray(:, jBeg, m)
             bcVarArray(:, jEnd, m) = 2*bcVarArray(:, jEnd, m)
-
+            
+            
          end if
+         write(6,*) "after"
 
-       endif
-    enddo
+         do i_tmp = iBeg, iEnd 
+            do j_tmp = jBeg, jEnd 
+               ! write(6,*)  i_tmp, j_tmp,
+               write(*, fmt="(f10.2, tr2)", advance="no")  bcVarArray(i_tmp,j_tmp,m)
+            end do
+            write(6,*)
+         end do
+         
+      endif
+   enddo
 
     ! Format statements.
 
@@ -2126,7 +2266,9 @@ contains
 
   end subroutine extractFromDataSet
 
-  subroutine extractFromDataSet_d(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
+  subroutine extractFromDataSet_d(bcVarArray, iBeg, iEnd, jBeg, jEnd, inBegor, &
+      inEndor, jnBegor, jnEndor,&
+      cgns_subface_isize, cgns_subface_jsize, bcVarArrayd)
 
     !------------------------------------------------------------------------
     ! Manual Differentiation Warning: This routine is differentiated by hand.
@@ -2144,13 +2286,16 @@ contains
     implicit none
 
     ! Input
+    integer(kind=intType), intent(in) :: inBegor, inEndor, jnBegor, jnEndor
+    integer(kind=intType), intent(in) :: cgns_subface_isize, cgns_subface_jsize
+
     real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax), intent(inout) :: bcVarArray, bcVarArrayd
     integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
 
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, i, j, ii, iSize, jSize
+    integer(kind=intType) :: k, l, m, n, i, j, ii, iSize, jSize,  i_loc, j_loc, i_tmp, j_tmp
     integer(kind=intType) :: nInter, nDim, nVarPresent, nCoor
 
     integer(kind=intType), dimension(3) :: dataDim, coor
@@ -2170,7 +2315,7 @@ contains
     ! algorithm is perfectly okay. At the moment only the Dirichlet
     ! arrays are checked.
 
-    jSize = jEnd - jBeg 
+
 
     call setBCVarPresent(ind)
 
@@ -2195,21 +2340,26 @@ contains
 
             ! the array of data has a size one less in each dimentions because it only covers the nodes and the 
             ! bcvararray has cell center data of all the cells + the ghost cells
-            do i = iBeg, iEnd-1
-               do j = jBeg, jEnd-1
-                 
-                 qn = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)*fourth 
+            do i = inBegor, inEndOr
+               do j = jnBegor, jnEndor
+              
+                  i_loc = (i - inBegor) + iBeg
+                  j_loc = (j - jnBegor) + jBeg
+        
                   
-                 bcVarArray(i , j, m) = bcVarArray(i , j, m) + qn
-                 bcVarArray(i+1 , j, m) = bcVarArray(i+1 , j, m) + qn
-                 bcVarArray(i , j+1, m) = bcVarArray(i , j+1, m) + qn
-                 bcVarArray(i+1 , j+1, m) = bcVarArray(i+1 , j+1, m) + qn
+                 qn = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j)*fourth 
+                  
+                 bcVarArray(i_loc , j_loc, m) = bcVarArray(i_loc , j_loc, m) + qn
+                 bcVarArray(i_loc+1 , j_loc, m) = bcVarArray(i_loc+1 , j_loc, m) + qn
+                 bcVarArray(i_loc , j_loc+1, m) = bcVarArray(i_loc , j_loc+1, m) + qn
+                 bcVarArray(i_loc+1 , j_loc+1, m) = bcVarArray(i_loc+1 , j_loc+1, m) + qn
+
                  
-                 qnd  = dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)*fourth 
-                 bcVarArrayd(i , j, m) = bcVarArrayd(i , j, m) + qnd
-                 bcVarArrayd(i+1 , j, m) = bcVarArrayd(i+1 , j, m) + qnd
-                 bcVarArrayd(i , j+1, m) = bcVarArrayd(i , j+1, m) + qnd
-                 bcVarArrayd(i+1 , j+1, m) = bcVarArrayd(i+1 , j+1, m) + qnd
+                 qnd = dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j)*fourth 
+                 bcVarArrayd(i_loc , j_loc, m) = bcVarArrayd(i_loc , j_loc, m) + qnd
+                 bcVarArrayd(i_loc+1 , j_loc, m) = bcVarArrayd(i_loc+1 , j_loc, m) + qnd
+                 bcVarArrayd(i_loc , j_loc+1, m) = bcVarArrayd(i_loc , j_loc+1, m) + qnd
+                 bcVarArrayd(i_loc+1 , j_loc+1, m) = bcVarArrayd(i_loc+1 , j_loc+1, m) + qnd
                  
                 
                end do 
@@ -2228,14 +2378,27 @@ contains
 
          end if
 
+         write(6,*) "after _d"
+
+         do i_tmp = iBeg, iEnd 
+            do j_tmp = jBeg, jEnd 
+               ! write(6,*)  i_tmp, j_tmp,
+               write(*, fmt="(f10.2, tr2)", advance="no")  bcVarArrayd(i_tmp,j_tmp,m)
+            end do
+            write(6,*)
+         end do
+
        endif
     enddo
 
 
   end subroutine extractFromDataSet_d
 
-  subroutine extractFromDataSet_b(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
-    !------------------------------------------------------------------------
+  subroutine extractFromDataSet_b(bcVarArray, iBeg, iEnd, jBeg, jEnd, inBegor, &
+      inEndor, jnBegor, jnEndor,&
+      cgns_subface_isize, cgns_subface_jsize, bcVarArrayd)
+
+   !------------------------------------------------------------------------
     ! Manual Differentiation Warning: This routine is differentiated by hand.
     ! -----------------------------------------------------------------------
     !
@@ -2252,12 +2415,15 @@ contains
 
     ! Input
     integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd 
+    integer(kind=intType), intent(in) :: inBegor, inEndor, jnBegor, jnEndor
+    integer(kind=intType), intent(in) :: cgns_subface_isize, cgns_subface_jsize
+
     real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax), intent(inout) :: bcVarArray, bcVarArrayd
 
     !
     !      Local variables.
     !
-    integer(kind=intType) :: k, l, m, n, i, j, ii, iSize, jSize
+    integer(kind=intType) :: k, l, m, n, i, j, ii, iSize, jSize, i_loc, j_loc, i_tmp, j_tmp
     integer(kind=intType) :: nInter, nDim, nVarPresent, nCoor
 
     integer(kind=intType), dimension(3) :: dataDim, coor
@@ -2299,6 +2465,17 @@ contains
                                                         + sum(bcVarArrayd(:,:,m))
          else
 
+            
+            write(6,*) "after _b"
+      
+            do i_tmp = iBeg, iEnd 
+               do j_tmp = jBeg, jEnd 
+                  ! write(6,*)  i_tmp, j_tmp,
+                  write(*, fmt="(f10.2, tr2)", advance="no")  bcVarArrayd(i_tmp,j_tmp,m)
+               end do
+               write(6,*)
+            end do
+         
             bcVarArrayd(iBeg,:,m)  = 2*bcVarArrayd(iBeg,:,m)
             bcVarArrayd(iEnd,:,m)  = 2*bcVarArrayd(iEnd,:,m)
             bcVarArrayd(:, jBeg, m) = 2*bcVarArrayd(:, jBeg, m)
@@ -2307,19 +2484,21 @@ contains
 
             ! the array of data has a size one less in each dimentions because it only covers the nodes and the 
             ! bcvararray has cell center data of all the cells + the ghost cells
-            do i = iBeg, iEnd-1
-               do j = jBeg, jEnd-1
-                 
-                  
+            do i = inBegor, inEndOr
+               do j = jnBegor, jnEndor
+            
+                  i_loc = (i - inBegor) + iBeg
+                  j_loc = (j - jnBegor) + jBeg
+               
                   qnd = zero
-                  qnd = qnd + bcVarArrayd(i , j, m)
-                  qnd = qnd + bcVarArrayd(i+1 , j, m)
-                  qnd = qnd + bcVarArrayd(i , j+1, m)
-                  qnd = qnd + bcVarArrayd(i+1 , j+1, m)
+                  qnd = qnd + bcVarArrayd(i_loc , j_loc, m)
+                  qnd = qnd + bcVarArrayd(i_loc+1 , j_loc, m)
+                  qnd = qnd + bcVarArrayd(i_loc , j_loc+1, m)
+                  qnd = qnd + bcVarArrayd(i_loc+1 , j_loc+1, m)
                   
                   
-                 dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = &
-                 dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) + fourth*qnd
+                 dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j) = &
+                 dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j) + fourth*qnd
   
           
                end do 
@@ -2338,7 +2517,9 @@ contains
 
   end subroutine extractFromDataSet_b
 
-  subroutine insertToDataSet(BCDataArray, BCDataVarNames, iBeg, iEnd, jBeg, jEnd)
+  subroutine insertToDataSet(BCDataArray, BCDataVarNames,&
+                             iBeg, iEnd, jBeg, jEnd, &
+                             cgns_subface_isize, cgns_subface_jsize)
     !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
@@ -2352,6 +2533,7 @@ contains
     character, dimension(:,:), intent(in) :: BCDataVarNames
     real(kind=realType), dimension(:,:), intent(in):: BCDataArray
     integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    integer(kind=intType), intent(in) :: cgns_subface_isize, cgns_subface_jsize
     
     !
     !      Local variables.
@@ -2360,10 +2542,10 @@ contains
     integer(kind=intType) :: ind(2,nbcVar)
     character(len=maxCGNSNameLen) :: varName
 
-    iSize = iEnd - iBeg + 1
-    jSize = jEnd - jBeg + 1
     
+    write(*,*) 'Inserting BC data to data set'
     call setBCVarPresent(ind)
+    
     do m=1, size(bcVarPresent,1)
        if( bcVarPresent(m) ) then
           k = ind(1,m)
@@ -2374,13 +2556,22 @@ contains
 
             if (bcVarNames(m) == varname) then
 
-              idx_bc_arr= 1
-              do j = jBeg, jEnd
-               do i = iBeg, iEnd
-                  dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArray(n, idx_bc_arr) 
-                  idx_bc_arr = idx_bc_arr + 1
-               end do 
-            end do 
+
+               idx_bc_arr= 1
+               if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
+
+                  dataSet(k)%dirichletArrays(l)%dataArr(1) = BCDataArray(n, idx_bc_arr)
+               else                 
+               
+                  do j = jBeg, jEnd
+                     do i = iBeg, iEnd
+                        dataSet(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j) = BCDataArray(n, idx_bc_arr) 
+                        ! write(*,*) 'i,j,ii',i, j, n, idx_bc_arr, (i-1)*cgns_subface_jsize+j, 'val', BCDataArray(n, idx_bc_arr) 
+
+                        idx_bc_arr = idx_bc_arr + 1
+                     end do 
+                  end do 
+               endif
             
             end if
 
@@ -2390,8 +2581,11 @@ contains
 
   end subroutine insertToDataSet
 
-  subroutine insertToDataSet_d(BCDataArray, BCDataVarNames, BCDataArrayd,iBeg, iEnd, jBeg, jEnd)
-    !--------------------------------------------------------------
+  subroutine insertToDataSet_d(BCDataArray, BCDataVarNames,&
+      iBeg, iEnd, jBeg, jEnd, &
+      cgns_subface_isize, cgns_subface_jsize, BCDataArrayd)
+
+   !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
     ! --------------------------------------------------------------
@@ -2405,7 +2599,8 @@ contains
     real(kind=realType), dimension(:,:), intent(in):: BCDataArray
     real(kind=realType), dimension(:,:), intent(in):: BCDataArrayd
     integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
-    
+    integer(kind=intType), intent(in) :: cgns_subface_isize, cgns_subface_jsize
+        
     !
     !      Local variables.
     !
@@ -2413,9 +2608,6 @@ contains
     integer(kind=intType) :: ind(2,nbcVar)
     character(len=maxCGNSNameLen) :: varName
 
-    iSize = iEnd - iBeg + 1
-    jSize = jEnd - jBeg + 1
-    
     call setBCVarPresent(ind)
 
     do m=1, size(bcVarPresent,1)
@@ -2427,14 +2619,22 @@ contains
             varName = char2str(BCDataVarNames(n,:), maxCGNSNameLen)
 
             idx_bc_arr= 1
-            do j = jBeg, jEnd
-               do i = iBeg, iEnd
-                dataSet(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArray(n, idx_bc_arr) 
-                dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j) = BCDataArrayd(n, idx_bc_arr) 
-  
-                idx_bc_arr = idx_bc_arr + 1
-             end do 
-          end do 
+            idx_bc_arr= 1
+            if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
+
+               dataSet(k)%dirichletArrays(l)%dataArr(1) = BCDataArray(n, idx_bc_arr)
+               dataSetd(k)%dirichletArrays(l)%dataArr(1) = BCDataArrayd(n, idx_bc_arr)
+            else          
+               do j = jBeg, jEnd
+                  do i = iBeg, iEnd
+                  dataSet(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j) = BCDataArray(n, idx_bc_arr) 
+                  dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j) = BCDataArrayd(n, idx_bc_arr) 
+                  print *, 'i,j,ii',i, j, n, idx_bc_arr, (i-1)*cgns_subface_jsize+j, 'vald', BCDataArrayd(n, idx_bc_arr)
+                  
+                  idx_bc_arr = idx_bc_arr + 1
+                  end do 
+               end do 
+            end if 
             
           end do
        endif
@@ -2442,8 +2642,11 @@ contains
 
   end subroutine insertToDataSet_d
 
-  subroutine insertToDataSet_b(BCDataArray, BCDataVarNames, BCDataArrayd, iBeg, iEnd, jBeg, jEnd)
-    !--------------------------------------------------------------
+   subroutine insertToDataSet_b(BCDataArray, BCDataVarNames,&
+      iBeg, iEnd, jBeg, jEnd, &
+      cgns_subface_isize, cgns_subface_jsize, BCDataArrayd)
+
+   !--------------------------------------------------------------
     ! Manual Differentiation Warning: Modifying this routine requires
     ! modifying the hand-written forward and reverse routines.
     ! --------------------------------------------------------------
@@ -2457,6 +2660,7 @@ contains
     real(kind=realType), dimension(:,:), intent(in):: BCDataArray
     real(kind=realType), dimension(:,:), intent(out):: BCDataArrayd
     integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    integer(kind=intType), intent(in) :: cgns_subface_isize, cgns_subface_jsize
     
     !
     !      Local variables.
@@ -2478,26 +2682,23 @@ contains
 
             varName = char2str(BCDataVarNames(n,:), maxCGNSNameLen)
             if (bcVarNames(m) == varname) then
-
-            !   lenDataArr = size(dataSet(k)%dirichletArrays(l)%dataArr)
-
-            !   ! size of array BCDataArray should be checked on python level before
-            !   ! calling setBCData
-            ! !   dataSet(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArray(n,1:lenDataArr)
-            ! !   dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = BCDataArrayd(n,1:lenDataArr)
-            !   BCDataArrayd(n,1:lenDataArr) = BCDataArrayd(n,1:lenDataArr) + &
-            !                dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr)
-            !   dataSetd(k)%dirichletArrays(l)%dataArr(1:lenDataArr) = 0
             
               idx_bc_arr= 1
-              do j = jBeg, jEnd
-               do i = iBeg, iEnd
-                  BCDataArrayd(n, idx_bc_arr)  = BCDataArrayd(n, idx_bc_arr) + dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*jSize+j)
-    
-                  idx_bc_arr = idx_bc_arr + 1
-               end do 
-            end do 
             
+              idx_bc_arr= 1
+              if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
+
+                  BCDataArrayd(n, idx_bc_arr) = dataSetd(k)%dirichletArrays(l)%dataArr(1)
+              else          
+                  do j = jBeg, jEnd
+                     do i = iBeg, iEnd
+                        BCDataArrayd(n, idx_bc_arr) = BCDataArrayd(n, idx_bc_arr) + &
+                        dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j)  
+         
+                        idx_bc_arr = idx_bc_arr + 1
+                     end do 
+                  end do 
+               end if                
             end if
 
           end do
@@ -2874,8 +3075,10 @@ contains
     !       solutions.
     !
     use constants
-    use blockPointers, only : flowDoms, BCData, nDom, nBocos, inBeg, inEnd, &
-         jnBeg, jnEnd, knBeg, knEnd, icBeg, icEnd, jcBeg, jcBeg, jcEnd, kcBeg, &
+    use blockPointers, only : flowDoms, BCData, nDom, nBocos,&
+         inBeg, inEnd, jnBeg, jnEnd, knBeg, knEnd,&
+         iBegor, iEndor, jBegor, jEndor, kBegor, kEndor,&
+         icBeg, icEnd, jcBeg, jcBeg, jcEnd, kcBeg, &
          kcEnd, BCFaceID
     use inputTimeSpectral, only : nTimeIntervalsSpectral
     use utils, only : setPointers, terminate
@@ -2930,35 +3133,49 @@ contains
                    BCData(j)%inEnd = jnEnd(j)
                    BCData(j)%jnBeg = knBeg(j)
                    BCData(j)%jnEnd = knEnd(j)
-
+                   
                    BCData(j)%icbeg = jcbeg(j)
                    BCData(j)%icend = jcend(j)
                    BCData(j)%jcbeg = kcbeg(j)
                    BCData(j)%jcend = kcend(j)
-
-                case (jMin,jMax)
+                   
+                   BCData(j)%inBegor = jBegor
+                   BCData(j)%inEndor = jEndor
+                   BCData(j)%jnBegor = kBegor
+                   BCData(j)%jnEndor = kEndor
+          
+                  case (jMin,jMax)
                    BCData(j)%inBeg = inBeg(j)
                    BCData(j)%inEnd = inEnd(j)
                    BCData(j)%jnBeg = knBeg(j)
                    BCData(j)%jnEnd = knEnd(j)
-
+                   
                    BCData(j)%icbeg = icbeg(j)
                    BCData(j)%icend = icend(j)
                    BCData(j)%jcbeg = kcbeg(j)
                    BCData(j)%jcend = kcend(j)
+                   
+                   BCData(j)%inBegor = iBegor
+                   BCData(j)%inEndor = iEndor
+                   BCData(j)%jnBegor = kBegor
+                   BCData(j)%jnEndor = kEndor
 
                 case (kMin,kMax)
                    BCData(j)%inBeg = inBeg(j)
                    BCData(j)%inEnd = inEnd(j)
                    BCData(j)%jnBeg = jnBeg(j)
                    BCData(j)%jnEnd = jnEnd(j)
-
+                   
                    BCData(j)%icbeg = icbeg(j)
                    BCData(j)%icend = icend(j)
                    BCData(j)%jcbeg = jcbeg(j)
                    BCData(j)%jcend = jcend(j)
-
-                end select
+                   
+                   BCData(j)%inBegor = iBegor
+                   BCData(j)%inEndor = iEndor
+                   BCData(j)%jnBegor = jBegor
+                   BCData(j)%jnEndor = jEndor
+                  end select
 
                 ! Initialize the boundary condition treatment for
                 ! subsonic inlet to noSubInlet.
@@ -3032,7 +3249,7 @@ contains
     !       arrays of the currently finest grid, i.e. groundLevel.
     !
     use constants
-    use blockPointers, only : BCData, BCType, nBKGlobal, nBocos, nDom, cgnsSubFace
+    use blockPointers, only : BCFaceID, BCData, BCType, nBKGlobal, nBocos, nDom, cgnsSubFace
     use communication, only : adflow_comm_world, myid
     use inputTimeSpectral, only :nTimeIntervalsSpectral
     use iteration, only : groundLevel
@@ -3047,7 +3264,10 @@ contains
     !
     integer :: ierr
 
-    integer(kind=intType) :: i, j, sps, iBeg, iEnd, jBeg, jEnd
+    integer(kind=intType) :: i, j, sps,&
+                  iBeg, iEnd, jBeg, jEnd, &  ! start and end indices for bcdata at the cell centers
+                  inBegor, inEndor, jnBegor, jnEndor, & ! nodal incides ranges of the subface w.r.t. the original cgsnDom Block
+                  cgns_subface_isize, cgns_subface_jsize ! nodal sizes of the subface of the original cgsnDom Block
 
     logical :: allTurbMassBleedInflow,  allTurbSubsonicInflow
     logical :: allFlowSupersonicInflow, allTurbSupersonicInflow
@@ -3091,40 +3311,63 @@ contains
              nDataSet = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%nDataSet
              dataSet => cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%dataSet
 
-             ! Store the range of the boundary subface a bit easier.
-
+             select case (BCFaceID(j))
+               
+             case (iMin,iMax)
+               cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+               cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+               
+            case (jMin,jMax)
+               cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+               cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+               
+            case (kMin,kMax)
+               cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+               cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+               
+            end select
+            
+            
+             ! Store the range of the boundary subface a bit easier.             
              iBeg = BCData(j)%icBeg; iEnd = BCData(j)%icEnd
              jBeg = BCData(j)%jcBeg; jEnd = BCData(j)%jcEnd
-
+             
+             inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
+             jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
+               
              ! Allocate the bcVarArray to the maximum size it could
              ! possibly be *in the last dimension*.
              allocate(bcVarArray(iBeg:iEnd,jBeg:jEnd,nbcVarMax))
 
              ! Determine the boundary condition we are having here and
              ! call the appropriate routine.
-
+             
              select case (BCType(j))
-
+               
              case (NSWallIsothermal)
                 call setBCVarNamesIsothermalWall ! sets bcVarNames and nbcVar
-                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize)
                 call BCDataIsothermalWall(j, bcVarArray, iBeg, iEnd, jBeg, jEnd)
 
              case (SupersonicInflow)
                 call setBCVarNamesSupersonicInflow
-                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize)
                 call BCDataSupersonicInflow(j, bcVarArray, iBeg, iEnd, jBeg, jEnd, &
                      allFlowSupersonicInflow, allTurbSupersonicInflow)
 
              case (SubsonicInflow)
                 call setBCVarNamesSubsonicInflow
-                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                                   inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize)
                 call BCDataSubsonicInflow(j, bcVarArray, iBeg, iEnd, jBeg, jEnd, &
                      allTurbSubsonicInflow)
 
              case (SubsonicOutflow)
                 call setBCVarNamesSubsonicOutflow ! sets bcVarNames and nbcVar
-                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize)
                 call BCDataSubsonicOutflow(j, bcVarArray, iBeg, iEnd, jBeg, jEnd)
 
              case (DomainInterfaceAll, DomainInterfaceRhoUVW, &
@@ -3289,6 +3532,7 @@ contains
 
     endif checkInit
 #endif
+
   end subroutine setBCDataFineGrid
 #ifndef USE_COMPLEX
   subroutine setBCDataFineGrid_d(initializationPart)
@@ -3301,7 +3545,7 @@ contains
     !       arrays of the currently finest grid, i.e. groundLevel.
     !
     use constants
-    use blockPointers, only : BCData, BCType, nBKGlobal, nBocos, nDom, cgnsSubFace
+    use blockPointers, only : BCFaceID, BCData, BCType, nBKGlobal, nBocos, nDom, cgnsSubFace
     use communication, only : adflow_comm_world, myid
     use inputTimeSpectral, only :nTimeIntervalsSpectral
     use iteration, only : groundLevel
@@ -3320,7 +3564,10 @@ contains
     integer :: ierr
     logical :: allTurbSubsonicInflow
     logical :: allFlowSupersonicInflow, allTurbSupersonicInflow
-    integer(kind=intType) :: i, j, sps, iBeg, iEnd, jBeg, jEnd
+    integer(kind=intType) :: i, j, sps,&
+                  iBeg, iEnd, jBeg, jEnd, &  ! start and end indices for bcdata at the cell centers
+                  inBegor, inEndor, jnBegor, jnEndor, & ! nodal incides ranges of the subface w.r.t. the original cgsnDom Block
+                  cgns_subface_isize, cgns_subface_jsize ! nodal sizes of the subface of the original cgsnDom Block
     real(kind=realType), dimension(:,:,:), allocatable :: bcVarArray, bcVarArrayd
 
     ! Loop over the number of spectral solutions and local blocks.
@@ -3346,11 +3593,31 @@ contains
              dataSet => cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%dataSet
              dataSetd => cgnsDomsd(nbkGlobal)%bocoInfo(cgnsBoco)%dataSet
 
-             ! Store the range of the boundary subface a bit easier.
-
+    
+             select case (BCFaceID(j))
+               
+             case (iMin,iMax)
+               cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+               cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+               
+            case (jMin,jMax)
+               cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+               cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+               
+            case (kMin,kMax)
+               cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+               cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+               
+            end select
+            
+            
+             ! Store the range of the boundary subface a bit easier.             
              iBeg = BCData(j)%icBeg; iEnd = BCData(j)%icEnd
              jBeg = BCData(j)%jcBeg; jEnd = BCData(j)%jcEnd
-
+             
+             inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
+             jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
+              
              ! Allocate the bcVarArray to the maximum size it could
              ! possibly be *in the last dimension*.
              allocate(bcVarArray(iBeg:iEnd,jBeg:jEnd,nbcVarMax), &
@@ -3361,24 +3628,29 @@ contains
 
              case (NSWallIsothermal)
                 call setBCVarNamesIsothermalWall ! sets bcVarNames and nbcVar
-                call extractFromDataSet_d(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet_d(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize, bcVarArrayd)
+                
                 call BCDataIsothermalWall_d(j, bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
 
              case (SupersonicInflow)
                 call setBCVarNamesSupersonicInflow
-                call extractFromDataSet_d(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet_d(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize, bcVarArrayd)
                 call BCDataSupersonicInflow_d(j, bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd, &
                      allFlowSupersonicInflow, allTurbSupersonicInflow)
 
              case (SubsonicInflow)
                 call setBCVarNamesSubsonicInflow
-                call extractFromDataSet_d(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet_d(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize, bcVarArrayd)
                 call BCDataSubsonicInflow_d(j, bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd, &
                      allTurbSubsonicInflow)
 
              case (SubsonicOutflow)
                 call setBCVarNamesSubsonicOutflow ! sets bcVarNames and nbcVar
-                call extractFromDataSet_d(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet_d(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize, bcVarArrayd)
                 call BCDataSubsonicOutflow_d(j, bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
              end select
 
@@ -3398,7 +3670,7 @@ contains
     !       arrays of the currently finest grid, i.e. groundLevel.
     !
     use constants
-    use blockPointers, only : BCData, BCType, nBKGlobal, nBocos, nDom, cgnsSubFace
+    use blockPointers, only : BCFaceID, BCData, BCType, nBKGlobal, nBocos, nDom, cgnsSubFace
     use communication, only : adflow_comm_world, myid
     use inputTimeSpectral, only :nTimeIntervalsSpectral
     use iteration, only : groundLevel
@@ -3416,7 +3688,12 @@ contains
     integer :: ierr
     logical :: allTurbSubsonicInflow
     logical :: allFlowSupersonicInflow, allTurbSupersonicInflow
-    integer(kind=intType) :: i, j, sps, iBeg, iEnd, jBeg, jEnd
+    
+   integer(kind=intType) :: i, j, sps,&
+            iBeg, iEnd, jBeg, jEnd, &  ! start and end indices for bcdata at the cell centers
+            inBegor, inEndor, jnBegor, jnEndor, & ! nodal incides ranges of the subface w.r.t. the original cgsnDom Block
+            cgns_subface_isize, cgns_subface_jsize ! nodal sizes of the subface of the original cgsnDom Block
+         
     real(kind=realType), dimension(:, :, :),allocatable :: bcVarArray, bcVarArrayd
 
     ! Loop over the number of spectral solutions and local blocks.
@@ -3441,11 +3718,30 @@ contains
              dataSet => cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%dataSet
              dataSetd => cgnsDomsd(nbkGlobal)%bocoInfo(cgnsBoco)%dataSet
 
+             select case (BCFaceID(j))
+
+             case (iMin,iMax)
+                cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+                cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+                
+             case (jMin,jMax)
+                cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+                cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%kBeg + 1
+                
+             case (kMin,kMax)
+                cgns_subface_isize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%iBeg + 1
+                cgns_subface_jsize = cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jEnd - cgnsDoms(nbkGlobal)%bocoInfo(cgnsBoco)%jBeg + 1
+                
+             end select
+ 
              ! Store the range of the boundary subface a bit easier.
 
              iBeg = BCData(j)%icBeg; iEnd = BCData(j)%icEnd
              jBeg = BCData(j)%jcBeg; jEnd = BCData(j)%jcEnd
 
+             inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
+             jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
+               
              ! Allocate the bcVarArray to the maximum size it could
              ! possibly be *in the last dimension*.
              allocate(bcVarArray(iBeg:iEnd,jBeg:jEnd, nbcVarMax), &
@@ -3457,29 +3753,41 @@ contains
 
              case (NSWallIsothermal)
                 call setBCVarNamesIsothermalWall ! sets bcVarNames and nbcVar
-                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize)
                 call BCDataIsothermalWall_b(j, bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
-                call extractFromDataSet_b(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
-
+                call extractFromDataSet_b(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                       inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize, &
+                                       bcVarArrayd)
+            
              case (SupersonicInflow)
                 call setBCVarNamesSupersonicInflow
-                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize)
                 call BCDataSupersonicInflow_b(j, bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd, &
                      allFlowSupersonicInflow, allTurbSupersonicInflow)
-                call extractFromDataSet_b(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet_b(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                     inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize, &
+                     bcVarArrayd)
 
              case (SubsonicInflow)
                 call setBCVarNamesSubsonicInflow
-                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize)
                 call BCDataSubsonicInflow_b(j, bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd, &
                      allTurbSubsonicInflow)
-                call extractFromDataSet_b(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet_b(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                     inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize, &
+                     bcVarArrayd)
 
              case (SubsonicOutflow)
                 call setBCVarNamesSubsonicOutflow
-                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                                          inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize)
                 call BCDataSubsonicOutflow_b(j, bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
-                call extractFromDataSet_b(bcVarArray, bcVarArrayd, iBeg, iEnd, jBeg, jEnd)
+                call extractFromDataSet_b(bcVarArray, iBeg, iEnd, jBeg, jEnd, &
+                     inBegor, inEndor, jnBegor, jnEndor, cgns_subface_isize, cgns_subface_jsize, &
+                     bcVarArrayd)
              end select
 
              deallocate(bcVarArray, bcVarArrayd)
