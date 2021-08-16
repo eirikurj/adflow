@@ -1653,7 +1653,6 @@ contains
       inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
       jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
       
-      write(*,*) 'ib', inBegor, 'ie', inEndor, 'jb', jnBegor, 'je', jnEndor, cgns_subface_jsize, cgns_subface_isize
       call extractPatchData(inBegor, inEndor, jnBegor, jnEndor,&
                             cgns_subface_isize, cgns_subface_jsize,&
                             BCDataArray(idx:idx+m-1, :), BCDataVarNames(idx:idx+m, :), BCDataArrSizes(idx:idx+m))
@@ -1759,7 +1758,6 @@ contains
       inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
       jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
       
-      write(*,*) 'ib', inBegor, 'ie', inEndor, 'jb', jnBegor, 'je', jnEndor
 
       call insertToDataSet(BCDataArray(idx:idx+m-1,:),&
                            BCDataVarNames(idx:idx+m-1, :), inBegor, inEndor, jnBegor, jnEndor, &
@@ -1870,15 +1868,10 @@ contains
       inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
       jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
       
-      write(*,*) 'ib', inBegor, 'ie', inEndor, 'jb', jnBegor, 'je', jnEndor
 
       call insertToDataSet_d(BCDataArray(idx:idx+m-1,:),&
                            BCDataVarNames(idx:idx+m-1, :), inBegor, inEndor, jnBegor, jnEndor, &
                            cgns_subface_isize, cgns_subface_jsize, BCDataArrayd(idx:idx+m-1,:))
-
-      ! call insertToDataSet_d(BCDataArray(idx:idx+m-1,:),&
-      !                      BCDataVarNames(idx:idx+m-1, :), BCDataArrayd(idx:idx+m-1,:), iBeg, iEnd, jBeg, jEnd)
-    
 
       idx = idx + m
 
@@ -2046,7 +2039,7 @@ contains
     
     call setBCVarPresent(ind)
 
-    write(*,*) "extracting patch data"
+   !  write(*,*) "extracting patch data"
     ii = 1
     do m=1,nbcVar
        if( bcVarPresent(m) ) then
@@ -2077,7 +2070,6 @@ contains
             do j = jBeg, jEnd
                do i = iBeg, iEnd
                   bcVarArrays(ii, idx_bc_arr) = dataSet(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j)
-                  write(*,*) 'i,j,ii',i, j, idx_bc_arr, (i-1)*cgns_subface_jsize+j, 'val', bcVarArrays(ii, idx_bc_arr) 
                   idx_bc_arr = idx_bc_arr + 1
                end do 
             end do 
@@ -2239,15 +2231,15 @@ contains
             
             
          end if
-         write(6,*) "after"
+         ! write(6,*) "after"
 
-         do i_tmp = iBeg, iEnd 
-            do j_tmp = jBeg, jEnd 
-               ! write(6,*)  i_tmp, j_tmp,
-               write(*, fmt="(f10.2, tr2)", advance="no")  bcVarArray(i_tmp,j_tmp,m)
-            end do
-            write(6,*)
-         end do
+         ! do i_tmp = iBeg, iEnd 
+         !    do j_tmp = jBeg, jEnd 
+         !       ! write(6,*)  i_tmp, j_tmp,
+         !       write(*, fmt="(f10.2, tr2)", advance="no")  bcVarArray(i_tmp,j_tmp,m)
+         !    end do
+         !    write(6,*)
+         ! end do
          
       endif
    enddo
@@ -2543,7 +2535,6 @@ contains
     character(len=maxCGNSNameLen) :: varName
 
     
-    write(*,*) 'Inserting BC data to data set'
     call setBCVarPresent(ind)
     
     do m=1, size(bcVarPresent,1)
