@@ -1386,7 +1386,8 @@ contains
 
   subroutine storeSurfsolInBuffer(sps, buffer, nn, blockID,   &
        faceID, cellRange, solName, &
-       viscousSubface, useRindLayer)
+       viscousSubface, useRindLayer, &
+       iBeg, iEnd, jBeg, jEnd)
     !
     !       storeSurfsolInBuffer stores the variable indicated by
     !       solName of the given block ID in the buffer. As the solution
@@ -1416,10 +1417,14 @@ contains
     real(kind=realType), dimension(*), intent(out) :: buffer
     character(len=*), intent(in) :: solName
     logical, intent(in) :: viscousSubface, useRindLayer
+    
+    ! if useRindLayer is true, then iBeg, iEnd, jBeg, jEnd are use to determine 
+    ! when the indices are in the rind layer.
+    integer(kind=intType), optional, intent(in) :: iBeg, iEnd, jBeg, jEnd
     !
     !      Local variables.
     !
-    integer(kind=intType) :: i, j, k
+    integer(kind=intType) :: i, j, k, ior, jor
     integer(kind=intType) :: ii, jj, mm, iiMax, jjMax, offVis
 
     integer(kind=intType), dimension(2,2) :: rangeFace
@@ -1447,6 +1452,7 @@ contains
     ! Set the pointers to this block.
 
     call setPointers(blockID, 1_intType, sps)
+   !  print *, "blockID = ", blockID
 
     ! Set the offset for the viscous data, such that the range is
     ! limited to the actual physical face. Viscous data, like skin
@@ -1877,6 +1883,7 @@ contains
        enddo
 
        !        ================================================================
+   
 
     case (cgnsSkinFmag, cgnsYplus, &
          cgnsSkinFx, cgnsSkinFy, cgnsSkinFz)
@@ -1895,26 +1902,43 @@ contains
        ! working indices are ii and jj.
 
        do j=rangeFace(2,1), rangeFace(2,2)
-          if(j == rangeFace(2,1)) then
-             jj = min(j + offVis, rangeFace(2,2))
-          else if(j == rangeFace(2,2)) then
-             jj = max(j - offVis, rangeFace(2, 1))
-          else
-             jj = j
-          endif
+         
+         !  if satements are used to copy the value of of the interior
+         ! cell since the value isn't difined in the rind ell 
+         
+         if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+            jor = j + jBegOr - 1
+            if (jor == jBeg) then 
+               jj = j + 1 
+            else if (jor == jEnd) then
+               jj = j - 1
+            else
+               jj = j 
+            endif
+         else
+            jj = j
+            
+         end if
 
           do i=rangeFace(1,1), rangeFace(1,2)
-             if(i == rangeFace(1,1)) then
-                ii = min(i + offVis, rangeFace(1,2))
-             else if(i == rangeFace(1,2)) then
-                ii = max(i - offVis, rangeFace(1,1))
-             else
-                ii = i
-             endif
-
+             if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+               ior = i + iBegor - 1
+               if (ior == iBeg) then 
+                  ! print *, 'ibeg'
+                  ii = i + 1 
+               else if (ior == iEnd) then
+                  ! print *, 'iend'
+                  ii = i - 1
+               else
+                  ! print *, 'else'
+                  ii = i 
+               endif
+            else
+               ii = i
+            endif
+            
              ! Determine the viscous subface on which this
              ! face is located.
-
              mm = viscPointer(ii,jj)
 
              ! Store the 6 components of the viscous stress tensor
@@ -1993,23 +2017,41 @@ contains
          ! are set equal to the nearest physical face. Therefore the
          ! working indices are ii and jj.
          do j=rangeFace(2,1), rangeFace(2,2)
-            if(j == rangeFace(2,1)) then
-               jj = min(j + offVis, rangeFace(2,2))
-            else if(j == rangeFace(2,2)) then
-               jj = max(j - offVis, rangeFace(2, 1))
+         
+            !  if satements are used to copy the value of of the interior
+            ! cell since the value isn't difined in the rind ell 
+            
+            if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+               jor = j + jBegOr - 1
+               if (jor == jBeg) then 
+                  jj = j + 1 
+               else if (jor == jEnd) then
+                  jj = j - 1
+               else
+                  jj = j 
+               endif
             else
                jj = j
-            endif
-  
-            do i=rangeFace(1,1), rangeFace(1,2)
-               if(i == rangeFace(1,1)) then
-                  ii = min(i + offVis, rangeFace(1,2))
-               else if(i == rangeFace(1,2)) then
-                  ii = max(i - offVis, rangeFace(1,1))
+               
+            end if
+   
+             do i=rangeFace(1,1), rangeFace(1,2)
+                if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+                  ior = i + iBegor - 1
+                  if (ior == iBeg) then 
+                     ! print *, 'ibeg'
+                     ii = i + 1 
+                  else if (ior == iEnd) then
+                     ! print *, 'iend'
+                     ii = i - 1
+                  else
+                     ! print *, 'else'
+                     ii = i 
+                  endif
                else
                   ii = i
                endif
-  
+     
                ! Determine the viscous subface on which this
                ! face is located.
   
@@ -2046,23 +2088,41 @@ contains
          ! are set equal to the nearest physical face. Therefore the
          ! working indices are ii and jj.
          do j=rangeFace(2,1), rangeFace(2,2)
-            if(j == rangeFace(2,1)) then
-               jj = min(j + offVis, rangeFace(2,2))
-            else if(j == rangeFace(2,2)) then
-               jj = max(j - offVis, rangeFace(2, 1))
+         
+            !  if satements are used to copy the value of of the interior
+            ! cell since the value isn't difined in the rind ell 
+            
+            if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+               jor = j + jBegOr - 1
+               if (jor == jBeg) then 
+                  jj = j + 1 
+               else if (jor == jEnd) then
+                  jj = j - 1
+               else
+                  jj = j 
+               endif
             else
                jj = j
-            endif
-  
-            do i=rangeFace(1,1), rangeFace(1,2)
-               if(i == rangeFace(1,1)) then
-                  ii = min(i + offVis, rangeFace(1,2))
-               else if(i == rangeFace(1,2)) then
-                  ii = max(i - offVis, rangeFace(1,1))
+               
+            end if
+   
+             do i=rangeFace(1,1), rangeFace(1,2)
+                if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+                  ior = i + iBegor - 1
+                  if (ior == iBeg) then 
+                     ! print *, 'ibeg'
+                     ii = i + 1 
+                  else if (ior == iEnd) then
+                     ! print *, 'iend'
+                     ii = i - 1
+                  else
+                     ! print *, 'else'
+                     ii = i 
+                  endif
                else
                   ii = i
                endif
-  
+     
                ! Determine the viscous subface on which this
                ! face is located.
   
