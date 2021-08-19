@@ -1923,9 +1923,8 @@ contains
          inBegor, inEndor, jnBegor, jnEndor, & ! nodal incides ranges of the subface w.r.t. the original cgsnDom Block
          cgns_subface_isize, cgns_subface_jsize ! nodal sizes of the subface of the original cgsnDom Block
 
-   idx = 1
-   do ii = 1,size(patchLoc,1)
-
+   idx = size(BCDataArrayd,1)
+   do ii = size(patchLoc,1),1,-1
 
        i = patchLoc(ii,1)
        j = patchLoc(ii,2)
@@ -1978,15 +1977,12 @@ contains
       inBegor = BCData(j)%inBegor; inEndor = BCData(j)%inEndOr
       jnBegor = BCData(j)%jnBegor; jnEndor = BCData(j)%jnEndOr
       
-      write(*,*) 'ib', inBegor, 'ie', inEndor, 'jb', jnBegor, 'je', jnEndor
-
-      call insertToDataSet_b(BCDataArray(idx:idx+m-1,:),&
-                           BCDataVarNames(idx:idx+m-1, :), inBegor, inEndor, jnBegor, jnEndor, &
-                           cgns_subface_isize, cgns_subface_jsize,BCDataArrayd(idx:idx+m-1,:) )
+      
+      call insertToDataSet_b(BCDataArray(idx:idx-(m-1),:),&
+                           BCDataVarNames(idx:idx-(m-1), :), inBegor, inEndor, jnBegor, jnEndor, &
+                           cgns_subface_isize, cgns_subface_jsize,BCDataArrayd(idx:idx-(m-1),:) )
    
-      idx = idx + m
-
-
+      idx = idx - m
    end do
 
   end subroutine setBCData_b
@@ -2370,16 +2366,6 @@ contains
 
          end if
 
-         write(6,*) "after _d"
-
-         do i_tmp = iBeg, iEnd 
-            do j_tmp = jBeg, jEnd 
-               ! write(6,*)  i_tmp, j_tmp,
-               write(*, fmt="(f10.2, tr2)", advance="no")  bcVarArrayd(i_tmp,j_tmp,m)
-            end do
-            write(6,*)
-         end do
-
        endif
     enddo
 
@@ -2456,17 +2442,6 @@ contains
             dataSetd(k)%dirichletArrays(l)%dataArr(1) = dataSetd(k)%dirichletArrays(l)%dataArr(1) &
                                                         + sum(bcVarArrayd(:,:,m))
          else
-
-            
-            write(6,*) "after _b"
-      
-            do i_tmp = iBeg, iEnd 
-               do j_tmp = jBeg, jEnd 
-                  ! write(6,*)  i_tmp, j_tmp,
-                  write(*, fmt="(f10.2, tr2)", advance="no")  bcVarArrayd(i_tmp,j_tmp,m)
-               end do
-               write(6,*)
-            end do
          
             bcVarArrayd(iBeg,:,m)  = 2*bcVarArrayd(iBeg,:,m)
             bcVarArrayd(iEnd,:,m)  = 2*bcVarArrayd(iEnd,:,m)
@@ -2610,7 +2585,6 @@ contains
             varName = char2str(BCDataVarNames(n,:), maxCGNSNameLen)
 
             idx_bc_arr= 1
-            idx_bc_arr= 1
             if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
 
                dataSet(k)%dirichletArrays(l)%dataArr(1) = BCDataArray(n, idx_bc_arr)
@@ -2620,8 +2594,7 @@ contains
                   do i = iBeg, iEnd
                   dataSet(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j) = BCDataArray(n, idx_bc_arr) 
                   dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j) = BCDataArrayd(n, idx_bc_arr) 
-                  print *, 'i,j,ii',i, j, n, idx_bc_arr, (i-1)*cgns_subface_jsize+j, 'vald', BCDataArrayd(n, idx_bc_arr)
-                  
+
                   idx_bc_arr = idx_bc_arr + 1
                   end do 
                end do 
@@ -2660,8 +2633,6 @@ contains
     integer(kind=intType) :: ind(2,nbcVar)
     character(len=maxCGNSNameLen) :: varName
 
-    iSize = iEnd - iBeg + 1
-    jSize = jEnd - jBeg + 1
     
     call setBCVarPresent(ind)
 
@@ -2674,18 +2645,18 @@ contains
             varName = char2str(BCDataVarNames(n,:), maxCGNSNameLen)
             if (bcVarNames(m) == varname) then
             
-              idx_bc_arr= 1
             
               idx_bc_arr= 1
               if (size(dataSet(k)%dirichletArrays(l)%dataArr,1) .eq. 1) then
 
                   BCDataArrayd(n, idx_bc_arr) = dataSetd(k)%dirichletArrays(l)%dataArr(1)
               else          
-                  do j = jBeg, jEnd
-                     do i = iBeg, iEnd
+               do j = jBeg, jEnd
+                  do i = iBeg, iEnd
                         BCDataArrayd(n, idx_bc_arr) = BCDataArrayd(n, idx_bc_arr) + &
                         dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j)  
-         
+                        dataSetd(k)%dirichletArrays(l)%dataArr((i-1)*cgns_subface_jsize+j)   = 0.0d0
+
                         idx_bc_arr = idx_bc_arr + 1
                      end do 
                   end do 
