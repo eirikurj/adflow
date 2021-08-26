@@ -3190,7 +3190,6 @@ class ADFLOW(AeroSolver):
                 self.adflow.bcdata.getbcdata(TS+1, patchLoc, patchNumBCVar, \
                                             numpy.sum(patchNumBCVar), MaxBCDataArrSize)
                 
-                print(BCDataArrSize)
                 
                 data = self._convertFortBCDataToBCData(BCDataArrays, BCDataVarNames, BCDataArrSize, patchLoc, patchNumBCVar, [family]*len(patchLoc))
                 bc_data.update(data)
@@ -4804,7 +4803,29 @@ class ADFLOW(AeroSolver):
 
         # Single return (most frequent) is 'clean', otherwise a tuple.
         return tuple(returns) if len(returns) > 1 else returns[0]
+    
 
+    def computeJacobianVectorProductBwdFast(
+        self,
+        resBar=None,
+    ):
+        """used for testing the routines used for jac vec prods for the adjoint solve. 
+        
+        Parameters
+        ----------
+        resBar : numpy array
+            Seed for the residuals (dwb in adflow)
+      
+        Returns
+        -------
+        wbar: array
+            state derivative seeds
+        """
+        wbar = self.adflow.adjointapi.computematrixfreeproductbwdfast(resBar, self.getAdjointStateSize()) 
+        
+        return wbar
+        
+        
     def mapVector(self, vec1, groupName1, groupName2, vec2=None, includeZipper=True):
         """This is the main workhorse routine of everything that deals with
         families in ADflow. The purpose of this routine is to convert a

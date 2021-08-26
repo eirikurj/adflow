@@ -2212,19 +2212,37 @@ contains
          ! are set equal to the nearest physical face. Therefore the
          ! working indices are ii and jj.
          do j=rangeFace(2,1), rangeFace(2,2)
-            if(j == rangeFace(2,1)) then
-               jj = min(j + offVis, rangeFace(2,2))
-            else if(j == rangeFace(2,2)) then
-               jj = max(j - offVis, rangeFace(2, 1))
+         
+            !  if satements are used to copy the value of of the interior
+            ! cell since the value isn't difined in the rind ell 
+            
+            if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+               jor = j + jBegOr - 1
+               if (jor == jBeg) then 
+                  jj = j + 1 
+               else if (jor == jEnd) then
+                  jj = j - 1
+               else
+                  jj = j 
+               endif
             else
                jj = j
-            endif
-
-            do i=rangeFace(1,1), rangeFace(1,2)
-               if(i == rangeFace(1,1)) then
-                  ii = min(i + offVis, rangeFace(1,2))
-               else if(i == rangeFace(1,2)) then
-                  ii = max(i - offVis, rangeFace(1,1))
+               
+            end if
+   
+             do i=rangeFace(1,1), rangeFace(1,2)
+                if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+                  ior = i + iBegor - 1
+                  if (ior == iBeg) then 
+                     ! print *, 'ibeg'
+                     ii = i + 1 
+                  else if (ior == iEnd) then
+                     ! print *, 'iend'
+                     ii = i - 1
+                  else
+                     ! print *, 'else'
+                     ii = i 
+                  endif
                else
                   ii = i
                endif

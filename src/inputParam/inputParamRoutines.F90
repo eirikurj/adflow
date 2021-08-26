@@ -304,6 +304,8 @@ contains
        case(cgnsStanton)
           sortNumber(i) = 118
 
+       case(cgnsHeatTransferCoef)
+         sortNumber(i) = 119
 
        case (cgnsHdiffMax)
           sortNumber(i) = 201
@@ -1613,7 +1615,7 @@ contains
          nMon = nMon + 1; nMonSum = nMonSum + 1
          tmpNames(nMon) = cgnsTotHeatTransfer
 
-      case("heattransfercoef")
+      case("havg")
          nMon = nMon + 1; nMonSum = nMonSum + 1
          tmpNames(nMon) = cgnsHeatTransferCoef
 

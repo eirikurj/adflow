@@ -118,17 +118,18 @@ for f in os.listdir(DIR_ORI):
                 else:
                     line = line.replace("_b", "")
 
-            # Push control 1b's
-            m = patt_pushcontrol1b.match(line)
-            if m:
-                num = m.group(2)
-                line = "myIntPtr = myIntPtr + 1\n myIntStack(myIntPtr) = %s\n" % num
+            # # Push control 1b's
+            if not f.lower() == "fluxes_fast_b.f90":
+                m = patt_pushcontrol1b.match(line)
+                if m:
+                    num = m.group(2)
+                    line = "myIntPtr = myIntPtr + 1\n myIntStack(myIntPtr) = %s\n" % num
 
-            # Pop control 1b's
-            m = patt_popcontrol1b.match(line)
-            if m:
-                num = m.group(2)
-                line = "%s = myIntStack(myIntPtr)\n myIntPtr = myIntPtr - 1\n" % num
+                # Pop control 1b's
+                m = patt_popcontrol1b.match(line)
+                if m:
+                    num = m.group(2)
+                    line = "%s = myIntStack(myIntPtr)\n myIntPtr = myIntPtr - 1\n" % num
 
             # See if we need to modify the line
             m = patt_module_start.match(line)
@@ -140,7 +141,9 @@ for f in os.listdir(DIR_ORI):
                 line = "end module %s_fast_b\n" % m.group(2)
 
             # Delete patterns
-            if not f.lower() == "bcroutines_b.f90":
+            
+            if not f.lower() == "bcroutines_b.f90" and not  f.lower() == "fluxes_fast_b.f90":
+                
                 for p in del_patterns:
                     if p.match(line):
                         line = ""

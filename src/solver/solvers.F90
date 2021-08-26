@@ -1439,9 +1439,12 @@ contains
              case (cgnsAxisMoment)
                 monLoc(mm) = monLoc(mm) + localValues(iaxisMoment)
 
-             case (cgnsTotHeatTransfer)
-                monLoc(mm) = monLoc(mm) + localValues(iTotHeatTransfer)
+            case (cgnsTotHeatTransfer)
+               monLoc(mm) = monLoc(mm) + localValues(iTotHeatTransfer)
 
+            case (cgnsHeatTransferCoef)
+               monLoc(mm) = monLoc(mm) + localValues(iHeatTransferCoef)
+    
              end select
 
           end do nMonitoringVar

@@ -355,7 +355,8 @@ contains
     real(kind=realType) :: dummyReal, dummyReald
 
     fSize = size(forcesDot, 2)
-    allocate(funcValues, mold=funcValuesd)
+    
+    if (present(funcValuesd)) allocate(funcValues, mold=funcValuesd)
     allocate(forces, mold=forcesDot)
     allocate(heatfluxes, mold=heatfluxesDot)
 
@@ -607,7 +608,10 @@ contains
     end do
     call VecResetArray(x_like, ierr)
     call EChk(ierr, __FILE__, __LINE__)
-    deallocate(forces, heatfluxes, funcValues)
+    
+    if (present(funcValuesd)) deallocate(funcValues)
+    
+    deallocate(forces, heatfluxes)
   end subroutine master_d
 
  subroutine master_b(wbar, xbar, extraBar, forcesBar, heatfluxBar, dwBar, nState, famLists, &
@@ -714,12 +718,13 @@ contains
     allocate(heatfluxes(1, fsize, nTimeIntervalsSpectral))
 
    !  ! do the foreward pass
-   !  call master(.true., famLists, funcValues, forces, heatfluxes, bcDataNames, bcDataValues, &
-   !    bcDataFamLists)
-    ! you may be thinking we do we need this when we always do a forward pass before solving the
-    ! adjoint? well it is because we run this code multiple times to setup the adjoint. On each
-    ! reverse pass the varibles (namely the halo cell states) can be changed so it is import to
-    ! reset them with another forward pass.
+   !  call master(.true., famLists, funcValues, forces, heatfluxes, BCArrays, &
+   !  BCVarNames, patchLoc, nBCVars, &
+   !  actArray, actVarNames, actFamLists)
+   !  you may be thinking we do we need this when we always do a forward pass before solving the
+   !  adjoint? well it is because we run this code multiple times to setup the adjoint. On each
+   !  reverse pass the varibles (namely the halo cell states) can be changed so it is import to
+   !  reset them with another forward pass.
 
       do sps=1,nTimeIntervalsSpectral
          do nn=1,nDom
@@ -1075,7 +1080,7 @@ contains
     use constants
     use iteration, only : currentLevel
     use flowVarRefState, only : nw, viscous
-    use blockPointers, only : nDom, il, jl, kl, wd, dwd, iblank
+    use blockPointers, only : nDom, il, jl, kl, wd, dwd, pd, iblank
     use inputPhysics, only : equationMode, turbModel, equations
     use inputDiscretization, only : lowSpeedPreconditioner, spaceDiscr
     use inputTimeSpectral, only : nTimeIntervalsSpectral
@@ -1114,8 +1119,7 @@ contains
     ! Working Variables
     integer(kind=intType) :: ierr, nn, sps, mm,i,j,k, l, fSize, ii, jj,  level, iRegion
     real(kind=realType) :: dummyReal
-
-    ! do the foreward pass
+    !  write(6,*) 'Forward pass complete again'
    !  call master(.true.)
     do sps=1,nTimeIntervalsSpectral
       do nn=1,nDom

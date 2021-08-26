@@ -14,6 +14,21 @@ def assert_adjoint_sens_allclose(handler, CFDSolver, ap, evalFuncs=None, **kwarg
     handler.root_add_dict("Eval Functions Sens:", funcsSens, rtol=rtol, atol=atol)
 
 
+def assert_adjoint_solve_accuracy(handler, CFDSolver, ap, evalFuncs=None, **kwargs):
+    rtol, atol = getTol(**kwargs)
+
+    for key in ap.evalFuncs:
+
+        psi = CFDSolver.curAP.adflowData.adjoints["cd"].copy()
+        RHS = CFDSolver.curAP.adflowData.adjointRHS["cd"].copy()
+
+        LHS = CFDSolver.computeJacobianVectorProductBwdFast(resBar=psi)
+
+        err = LHS - RHS
+        handler.root_print(f"||dR/dU * adjoint - d{key}/du||")
+        handler.par_add_norm(f"||dR/dU * adjoint - d{key}/du||", err, rtol=rtol, atol=atol)
+
+
 def assert_problem_size_equal(handler, CFDSolver, **kwargs):
     rtol, atol = getTol(**kwargs)
     # Now a few simple checks

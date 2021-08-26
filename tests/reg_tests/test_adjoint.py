@@ -1,6 +1,6 @@
 # built-ins
 import unittest
-import numpy
+import numpy as np
 import os
 import copy
 from collections import defaultdict
@@ -40,9 +40,9 @@ def setDVGeo(ffdFile, cmplx=False):
     DVGeo.addRefAxis(
         "wing",
         Curve(
-            x=numpy.linspace(5.0 / 4.0, 1.5 / 4.0 + 7.5, nTwist),
-            y=numpy.zeros(nTwist),
-            z=numpy.linspace(0, 14, nTwist),
+            x=np.linspace(5.0 / 4.0, 1.5 / 4.0 + 7.5, nTwist),
+            y=np.zeros(nTwist),
+            z=np.linspace(0, 14, nTwist),
             k=2,
         ),
     )
@@ -90,87 +90,111 @@ test_params = [
         "aero_prob": ap_tutorial_wing,
         "evalFuncs": ["cl", "cd"],
         "N_PROCS": 1,
-    },
-    # Tutorial scalar JST
-    {
-        "name": "euler_scalar_JST_tut_wing",
-        "options": {
-            "gridfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_euler_scalar_jst.cgns"),
-            "restartfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_euler_scalar_jst.cgns"),
-            "l2convergence": 1e-14,
-            "monitorvariables": ["cpu", "resrho", "totalr"],
-            "adjointl2convergence": 1e-14,
-            "mgcycle": "2w",
-            "ncycles": 1000,
-            "ncyclescoarse": 250,
-            "usenksolver": True,
-            "nkswitchtol": 2.5e-4,
-            "ankswitchtol": 1e-2,
-            "anksecondordswitchtol": 1e-2,
-            "useblockettes": False,
-            "frozenturbulence": False,
-            "blockSplitting": False,
-        },
-        "ref_file": "adjoint_euler_scalar_jst_tut_wing.json",
-        "aero_prob": ap_tutorial_wing,
-        "evalFuncs": ["cl", "cd", "cmz", "lift", "drag"],
-    },
-    # # Tutorial wing laminar
-    {
-        "name": "laminar_tut_wing",
-        "options": {
-            "gridfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_viscous_scalar_jst.cgns"),
-            "restartfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_viscous_scalar_jst.cgns"),
-            "l2convergence": 1e-15,
-            "l2convergencecoarse": 1e-2,
-            "monitorvariables": ["cpu", "resrho", "totalr"],
-            "adjointl2convergence": 1e-16,
-            "ncycles": 500,
-            "cfl": 1.5,
-            "cflcoarse": 1.25,
-            "mgcycle": "2w",
-            "ncyclescoarse": 250,
-            "usenksolver": True,
-            "ankswitchtol": 1e-2,
-            "anksecondordswitchtol": 1e-2,
-            "nkswitchtol": 1e-2,
-            "equationtype": "laminar NS",
-            "useblockettes": False,
-        },
-        "ref_file": "adjoint_laminar_tut_wing.json",
-        "aero_prob": ap_tutorial_wing_laminar,
-        "evalFuncs": ["cl", "cd", "cmz", "lift", "drag"],
-    },
-    # # Tutorial wing RANS
-    {
-        "name": "rans_tut_wing",
-        "options": {
-            "gridfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_rans_scalar_jst.cgns"),
-            "restartfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_rans_scalar_jst.cgns"),
-            "mgcycle": "2w",
-            "equationtype": "RANS",
-            "smoother": "DADI",
-            "cfl": 1.5,
-            "cflcoarse": 1.25,
-            "resaveraging": "never",
-            "nsubiter": 3,
-            "nsubiterturb": 3,
-            "ncyclescoarse": 100,
-            "ncycles": 1000,
-            "monitorvariables": ["cpu", "resrho", "resturb", "totalr"],
-            "usenksolver": True,
-            "ankswitchtol": 1e-2,
-            "anksecondordswitchtol": 1e-2,
-            "l2convergence": 1e-15,
-            "nkswitchtol": 1e-5,
-            "adjointl2convergence": 1e-16,
-            "frozenturbulence": False,
-            "blockSplitting": True,
-            "nkjacobianlag": 2,
-        },
-        "ref_file": "adjoint_rans_tut_wing.json",
-        "aero_prob": ap_tutorial_wing,
-        "evalFuncs": ["fx", "mz", "cl", "cd", "cmz", "lift", "drag"],
+    # },
+    # # {
+    # #     "name": "euler_upwind_tut_wing_1core",
+    # #     "options": {
+    # #         "gridfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_euler_upwind_coarse.cgns"),
+    # #         "restartfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_euler_upwind_coarse.cgns"),
+    # #         "l2convergence": 1e-14,
+    # #         "monitorvariables": ["cpu", "resrho", "totalr"],
+    # #         "adjointl2convergence": 1e-16,
+    # #         "mgcycle": "sg",
+    # #         "ncycles": 1000,
+    # #         "ncyclescoarse": 250,
+    # #         "usenksolver": True,
+    # #         "nkswitchtol": 2.5e-4,
+    # #         "ankswitchtol": 1e-0,
+    # #         "anksecondordswitchtol": 1e-2,
+    # #         "useblockettes": False,
+    # #         "frozenturbulence": False,
+    # #         "blockSplitting": False,
+    # #         "discretization": "upwind",
+    # #     },
+    # #     "ref_file": "adjoint_euler_upwind_tut_wing.json",
+    # #     "aero_prob": ap_tutorial_wing,
+    # #     "evalFuncs": ["cl", "cd"],
+    # # },
+    # # Tutorial scalar JST
+    # {
+    #     "name": "euler_scalar_JST_tut_wing",
+    #     "options": {
+    #         "gridfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_euler_scalar_jst.cgns"),
+    #         "restartfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_euler_scalar_jst.cgns"),
+    #         "l2convergence": 1e-14,
+    #         "monitorvariables": ["cpu", "resrho", "totalr"],
+    #         "adjointl2convergence": 1e-14,
+    #         "mgcycle": "2w",
+    #         "ncycles": 1000,
+    #         "ncyclescoarse": 250,
+    #         "usenksolver": True,
+    #         "nkswitchtol": 2.5e-4,
+    #         "ankswitchtol": 1e-2,
+    #         "anksecondordswitchtol": 1e-2,
+    #         "useblockettes": False,
+    #         "frozenturbulence": False,
+    #         "blockSplitting": False,
+    #     },
+    #     "ref_file": "adjoint_euler_scalar_jst_tut_wing.json",
+    #     "aero_prob": ap_tutorial_wing,
+    #     "evalFuncs": ["cl", "cd", "cmz", "lift", "drag"],
+    # },
+    # # # Tutorial wing laminar
+    # {
+    #     "name": "laminar_tut_wing",
+    #     "options": {
+    #         "gridfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_viscous_scalar_jst.cgns"),
+    #         "restartfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_viscous_scalar_jst.cgns"),
+    #         "l2convergence": 1e-15,
+    #         "l2convergencecoarse": 1e-2,
+    #         "monitorvariables": ["cpu", "resrho", "totalr"],
+    #         "adjointl2convergence": 1e-16,
+    #         "ncycles": 500,
+    #         "cfl": 1.5,
+    #         "cflcoarse": 1.25,
+    #         "mgcycle": "2w",
+    #         "ncyclescoarse": 250,
+    #         "usenksolver": True,
+    #         "ankswitchtol": 1e-2,
+    #         "anksecondordswitchtol": 1e-2,
+    #         "nkswitchtol": 1e-2,
+    #         "equationtype": "laminar NS",
+    #         "useblockettes": False,
+    #     },
+    #     "ref_file": "adjoint_laminar_tut_wing.json",
+    #     "aero_prob": ap_tutorial_wing_laminar,
+    #     "evalFuncs": ["cl", "cd", "cmz", "lift", "drag"],
+    # },
+    # # # Tutorial wing RANS
+    # {
+    #     "name": "rans_tut_wing",
+    #     "options": {
+    #         "gridfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_rans_scalar_jst.cgns"),
+    #         "restartfile": os.path.join(baseDir, "../../input_files/mdo_tutorial_rans_scalar_jst.cgns"),
+    #         "mgcycle": "2w",
+    #         "equationtype": "RANS",
+    #         "smoother": "DADI",
+    #         "cfl": 1.5,
+    #         "cflcoarse": 1.25,
+    #         "resaveraging": "never",
+    #         "nsubiter": 3,
+    #         "nsubiterturb": 3,
+    #         "ncyclescoarse": 100,
+    #         "ncycles": 1000,
+    #         "monitorvariables": ["cpu", "resrho", "resturb", "totalr"],
+    #         "usenksolver": True,
+    #         "ankswitchtol": 1e-2,
+    #         "anksecondordswitchtol": 1e-2,
+    #         "l2convergence": 1e-15,
+    #         "nkswitchtol": 1e-5,
+    #         "adjointl2convergence": 1e-16,
+    #         "frozenturbulence": False,
+    #         "blockSplitting": True,
+    #         "nkjacobianlag": 2,
+    #     },
+    #     "ref_file": "adjoint_rans_tut_wing.json",
+    #     "aero_prob": ap_tutorial_wing,
+    #     "evalFuncs": ["fx", "mz", "cl", "cd", "cmz", "lift", "drag"],
     },
 ]
 
@@ -231,6 +255,20 @@ class TestAdjoint(reg_test_classes.RegTest):
     def test_adjoint(self):
         utils.assert_adjoint_sens_allclose(self.handler, self.CFDSolver, self.ap, tol=1e-10)
         self.assert_adjoint_failure()
+    #     self.assert_adjoint_solve_accuracy(self.handler, self.CFDSolver, self.ap, tol=1e-9)
+
+    # def test_backward_fast(self):
+
+    #     dwBar = self.CFDSolver.getStatePerturbation(314)
+
+    #     wBar = self.CFDSolver.computeJacobianVectorProductBwd(resBar=dwBar, wDeriv=True)
+    #     wBarFast = self.CFDSolver.computeJacobianVectorProductBwdFast(resBar=dwBar)
+
+    #     rel_err = (wBar - wBarFast) / wBar
+
+    #     print(np.max(np.abs(rel_err)))
+
+    #     self.handler.par_add_norm("max((wBar - wBarFast) / wBar)", np.max(np.abs(rel_err)),  tol=1e-10)
 
 
 @parameterized_class(test_params)
@@ -303,7 +341,7 @@ class TestCmplxStep(reg_test_classes.CmplxRegTest):
             for f in self.ap.evalFuncs:
                 key = self.ap.name + "_" + f
                 dv_key = dv + "_" + self.ap.name
-                funcsSens[key][dv_key] = numpy.imag(funcs[key]) / self.h
+                funcsSens[key][dv_key] = np.imag(funcs[key]) / self.h
 
         if MPI.COMM_WORLD.rank == 0:
             print("====================================")
@@ -324,7 +362,7 @@ class TestCmplxStep(reg_test_classes.CmplxRegTest):
         # redo the setup for a cmplx test
         funcsSens = defaultdict(lambda: {})
 
-        xRef = {"twist": [0.0] * 6, "span": [0.0], "shape": numpy.zeros(72, dtype="D")}
+        xRef = {"twist": [0.0] * 6, "span": [0.0], "shape": np.zeros(72, dtype="D")}
 
         for dv in ["span", "twist", "shape"]:
 
@@ -343,14 +381,14 @@ class TestCmplxStep(reg_test_classes.CmplxRegTest):
             for f in self.ap.evalFuncs:
                 key = self.ap.name + "_" + f
                 dv_key = dv
-                funcsSens[key][dv_key] = numpy.imag(funcs[key]) / self.h
+                funcsSens[key][dv_key] = np.imag(funcs[key]) / self.h
 
                 err_msg = "Failed value for: {}".format(key + " " + dv_key)
 
                 ref_val = self.handler.db["Eval Functions Sens:"][key][dv_key]
                 ref_val = ref_val.flatten()[0]
 
-                numpy.testing.assert_allclose(funcsSens[key][dv_key], ref_val, atol=5e-9, rtol=5e-9, err_msg=err_msg)
+                np.testing.assert_allclose(funcsSens[key][dv_key], ref_val, atol=5e-9, rtol=5e-9, err_msg=err_msg)
 
         if MPI.COMM_WORLD.rank == 0:
             print("====================================")

@@ -310,6 +310,7 @@ contains
       ! Working parameters
       integer(kind=intType) :: mm, i, iDom
       integer(kind=intType) :: iBoco, iData, iDirichlet
+      write(*,*) 'ADSeeds for block', nn, ' at level ', level, ' at sps ', sps
       write(*,*) 'd2wall ', minval(flowDomsd(nn, level, sps)%d2wall), &
                         maxval(flowDomsd(nn, level, sps)%d2wall)
       write(*,*) 'x ', minval(flowDomsd(nn, level, sps)%x), &

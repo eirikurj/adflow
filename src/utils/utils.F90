@@ -6087,7 +6087,10 @@ end subroutine cross_prod
 
           case (cgnsTotHeatTransfer)
              write(*,"(a)",advance="no") "     Total Heat Xfer    |"
-
+ 
+         case (cgnsHeatTransferCoef)
+             write(*,"(a)",advance="no") "   Avg Heat Trans Coef  |"
+  
          end select
 #else
          ! complex versions print the full 16 digits for real and complex for "functionals"

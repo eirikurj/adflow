@@ -47,6 +47,24 @@ contains
     real(kind=realtype) :: tempd
     real(kind=realtype) :: tempd1
     real(kind=realtype) :: tempd0
+    call pushinteger4(i)
+    call pushinteger4(j)
+    call pushreal8(vnm)
+    call pushreal8(vnp)
+    call pushreal8(porflux)
+    call pushreal8(porvel)
+    call pushreal8(qsm)
+    call pushreal8(qsp)
+    call pushinteger4(i)
+    call pushinteger4(j)
+    call pushreal8(vnm)
+    call pushreal8(vnp)
+    call pushreal8(porflux)
+    call pushreal8(porvel)
+    call pushreal8(qsm)
+    call pushreal8(qsp)
+    call pushinteger4(i)
+    call pushinteger4(j)
     if (blockismoving .and. equationmode .eq. steady) then
 ! compute the three nondimensional angular velocities.
       wwx = timeref*cgnsdoms(nbkglobal)%rotrate(1)
@@ -72,6 +90,8 @@ contains
         wd(i, j, k, irho) = wd(i, j, k, irho) + vol(i, j, k)*rvold
       end do
     end if
+    call popinteger4(j)
+    call popinteger4(i)
     sface = zero
     do ii=0,nx*ny*kl-1
       i = mod(ii, nx) + 2
@@ -101,11 +121,9 @@ contains
         porvel = zero
         vnp = sface
         vnm = sface
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+        call pushcontrol1b(0)
       else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+        call pushcontrol1b(1)
       end if
 ! incorporate porflux in porvel.
       porvel = porvel*porflux
@@ -158,8 +176,7 @@ myIntPtr = myIntPtr + 1
       qspd = qspd + w(i, j, k+1, irho)*rqspd
       vnpd = porvel*qspd + p(i, j, k+1)*tempd1
       wd(i, j, k+1, irho) = wd(i, j, k+1, irho) + qsp*rqspd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+      call popcontrol1b(branch)
       if (branch .eq. 0) then
         vnmd = 0.0_8
         vnpd = 0.0_8
@@ -171,6 +188,14 @@ branch = myIntStack(myIntPtr)
       wd(i, j, k+1, ivy) = wd(i, j, k+1, ivy) + sk(i, j, k, 2)*vnpd
       wd(i, j, k+1, ivz) = wd(i, j, k+1, ivz) + sk(i, j, k, 3)*vnpd
     end do
+    call popreal8(qsp)
+    call popreal8(qsm)
+    call popreal8(porvel)
+    call popreal8(porflux)
+    call popreal8(vnp)
+    call popreal8(vnm)
+    call popinteger4(j)
+    call popinteger4(i)
     sface = zero
     do ii=0,nx*jl*nz-1
       i = mod(ii, nx) + 2
@@ -200,11 +225,9 @@ branch = myIntStack(myIntPtr)
         porvel = zero
         vnp = sface
         vnm = sface
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+        call pushcontrol1b(0)
       else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+        call pushcontrol1b(1)
       end if
 ! incorporate porflux in porvel.
       porvel = porvel*porflux
@@ -257,8 +280,7 @@ myIntPtr = myIntPtr + 1
       qspd = qspd + w(i, j+1, k, irho)*rqspd
       vnpd = porvel*qspd + p(i, j+1, k)*tempd0
       wd(i, j+1, k, irho) = wd(i, j+1, k, irho) + qsp*rqspd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+      call popcontrol1b(branch)
       if (branch .eq. 0) then
         vnmd = 0.0_8
         vnpd = 0.0_8
@@ -270,6 +292,14 @@ branch = myIntStack(myIntPtr)
       wd(i, j+1, k, ivy) = wd(i, j+1, k, ivy) + sj(i, j, k, 2)*vnpd
       wd(i, j+1, k, ivz) = wd(i, j+1, k, ivz) + sj(i, j, k, 3)*vnpd
     end do
+    call popreal8(qsp)
+    call popreal8(qsm)
+    call popreal8(porvel)
+    call popreal8(porflux)
+    call popreal8(vnp)
+    call popreal8(vnm)
+    call popinteger4(j)
+    call popinteger4(i)
 ! initialize sface to zero. this value will be used if the
 ! block is not moving.
     sface = zero
@@ -301,11 +331,9 @@ branch = myIntStack(myIntPtr)
         porvel = zero
         vnp = sface
         vnm = sface
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+        call pushcontrol1b(0)
       else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+        call pushcontrol1b(1)
       end if
 ! incorporate porflux in porvel.
       porvel = porvel*porflux
@@ -358,8 +386,7 @@ myIntPtr = myIntPtr + 1
       qspd = qspd + w(i+1, j, k, irho)*rqspd
       vnpd = porvel*qspd + p(i+1, j, k)*tempd
       wd(i+1, j, k, irho) = wd(i+1, j, k, irho) + qsp*rqspd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+      call popcontrol1b(branch)
       if (branch .eq. 0) then
         vnmd = 0.0_8
         vnpd = 0.0_8
@@ -933,6 +960,9 @@ branch = myIntStack(myIntPtr)
           dss(i, j, k, 3) = -x3
         end if
       end do
+      call pushinteger4(i)
+      call pushinteger4(j)
+      call pushreal8(sface)
 !
 !       dissipative fluxes in the i-direction.
 !
@@ -1090,6 +1120,32 @@ branch = myIntStack(myIntPtr)
         fw(i+1, j, k, irhoe) = fw(i+1, j, k, irhoe) + fs
         fw(i, j, k, irhoe) = fw(i, j, k, irhoe) - fs
       end do
+      call pushreal8(aavg)
+      call pushinteger4(i)
+      call pushinteger4(j)
+      call pushreal8(area)
+      call pushreal8(abv2)
+      call pushreal8(abv3)
+      call pushreal8(dr)
+      call pushreal8(abv4)
+      call pushreal8(dis2)
+      call pushreal8(dis4)
+      call pushreal8(dre)
+      call pushreal8(ddw2)
+      call pushreal8(ddw3)
+      call pushreal8(ddw4)
+      call pushreal8(havg)
+      call pushreal8(ddw6)
+      call pushreal8(dru)
+      call pushreal8(drv)
+      call pushreal8(drw)
+      call pushreal8(a2avg)
+      call pushreal8(lam3)
+      call pushreal8(ppor)
+      call pushreal8(sx)
+      call pushreal8(sy)
+      call pushreal8(sz)
+      call pushreal8(sface)
 !
 !       dissipative fluxes in the j-direction.
 !
@@ -1247,6 +1303,31 @@ branch = myIntStack(myIntPtr)
         fw(i, j+1, k, irhoe) = fw(i, j+1, k, irhoe) + fs
         fw(i, j, k, irhoe) = fw(i, j, k, irhoe) - fs
       end do
+      call pushreal8(aavg)
+      call pushinteger4(i)
+      call pushinteger4(j)
+      call pushreal8(area)
+      call pushreal8(abv2)
+      call pushreal8(abv3)
+      call pushreal8(dr)
+      call pushreal8(abv4)
+      call pushreal8(dis2)
+      call pushreal8(dis4)
+      call pushreal8(dre)
+      call pushreal8(ddw2)
+      call pushreal8(ddw3)
+      call pushreal8(ddw4)
+      call pushreal8(havg)
+      call pushreal8(ddw6)
+      call pushreal8(dru)
+      call pushreal8(drv)
+      call pushreal8(drw)
+      call pushreal8(a2avg)
+      call pushreal8(lam3)
+      call pushreal8(ppor)
+      call pushreal8(sx)
+      call pushreal8(sy)
+      call pushreal8(sz)
       dssd = 0.0_8
       do ii=0,nx*ny*kl-1
         i = mod(ii, nx) + 2
@@ -1257,21 +1338,17 @@ branch = myIntStack(myIntPtr)
         if (pork(i, j, k) .eq. normalflux) ppor = one
         if (dss(i, j, k, 3) .lt. dss(i, j, k+1, 3)) then
           y3 = dss(i, j, k+1, 3)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           y3 = dss(i, j, k, 3)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (dpmax .gt. y3) then
           min3 = y3
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           min3 = dpmax
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         dis2 = ppor*fis2*min3
         arg1 = ppor*fis4
@@ -1306,13 +1383,11 @@ myIntPtr = myIntPtr + 1
           drk = dis2*ddw6 - dis4*(w(i, j, k+2, irho)*w(i, j, k+2, itu1)-&
 &           w(i, j, k-1, irho)*w(i, j, k-1, itu1)-three*ddw6)
           kavg = half*(w(i, j, k+1, itu1)+w(i, j, k, itu1))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         else
           drk = zero
           kavg = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         end if
 ! compute the average value of gamma and compute some
 ! expressions in which it occurs.
@@ -1348,62 +1423,50 @@ myIntPtr = myIntPtr + 1
         if (addgridvelocities) sface = sfacek(i, j, k)*tmp
         if (unavg - sface + aavg .ge. 0.) then
           lam1 = unavg - sface + aavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam1 = -(unavg-sface+aavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (unavg - sface - aavg .ge. 0.) then
           lam2 = unavg - sface - aavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam2 = -(unavg-sface-aavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (unavg - sface .ge. 0.) then
           lam3 = unavg - sface
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam3 = -(unavg-sface)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         rrad = lam3 + aavg
         if (lam1 .lt. epsacoustic*rrad) then
           max10 = epsacoustic*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max10 = lam1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
 ! multiply the eigenvalues by the area to obtain
 ! the correct values for the dissipation term.
         lam1 = max10*area
         if (lam2 .lt. epsacoustic*rrad) then
           max11 = epsacoustic*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max11 = lam2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         lam2 = max11*area
         if (lam3 .lt. epsshear*rrad) then
           max12 = epsshear*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max12 = lam3
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         lam3 = max12*area
 ! some abbreviations, which occur quite often in the
@@ -1472,8 +1535,7 @@ myIntPtr = myIntPtr + 1
         lam1d = half*abv1d + half*abv2d
         lam2d = half*abv1d - half*abv2d
         max12d = area*lam3d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = epsshear*max12d
           lam3d = 0.0_8
@@ -1482,8 +1544,7 @@ branch = myIntStack(myIntPtr)
           rradd = 0.0_8
         end if
         max11d = area*lam2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = rradd + epsacoustic*max11d
           lam2d = 0.0_8
@@ -1491,8 +1552,7 @@ branch = myIntStack(myIntPtr)
           lam2d = max11d
         end if
         max10d = area*lam1d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = rradd + epsacoustic*max10d
           lam1d = 0.0_8
@@ -1501,15 +1561,13 @@ branch = myIntStack(myIntPtr)
         end if
         lam3d = lam3d + rradd
         aavgd = rradd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam3d
         else
           unavgd = unavgd - lam3d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam2d
           aavgd = aavgd - lam2d
@@ -1517,8 +1575,7 @@ branch = myIntStack(myIntPtr)
           aavgd = aavgd + lam2d
           unavgd = unavgd - lam2d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam1d
           aavgd = aavgd + lam1d
@@ -1555,8 +1612,7 @@ branch = myIntStack(myIntPtr)
         wd(i, j, k, ivy) = wd(i, j, k, ivy) + half*vavgd
         wd(i, j, k+1, ivx) = wd(i, j, k+1, ivx) + half*uavgd
         wd(i, j, k, ivx) = wd(i, j, k, ivx) + half*uavgd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dis2d = 0.0_8
           dis4d = 0.0_8
@@ -1651,21 +1707,45 @@ branch = myIntStack(myIntPtr)
         wd(i, j, k, irho) = wd(i, j, k, irho) - ddw1d
         call mydim_fast_b(arg1, arg1d, dis2, dis2d, dis4d)
         min3d = ppor*fis2*dis2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           y3d = min3d
         else
           y3d = 0.0_8
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dssd(i, j, k+1, 3) = dssd(i, j, k+1, 3) + y3d
         else
           dssd(i, j, k, 3) = dssd(i, j, k, 3) + y3d
         end if
       end do
+      call popreal8(sz)
+      call popreal8(sy)
+      call popreal8(sx)
+      call popreal8(ppor)
+      call popreal8(lam3)
+      call popreal8(a2avg)
+      call popreal8(drw)
+      call popreal8(drv)
+      call popreal8(dru)
+      call popreal8(ddw6)
+      call popreal8(havg)
+      call popreal8(ddw4)
+      call popreal8(ddw3)
+      call popreal8(ddw2)
+      call popreal8(dre)
+      call popreal8(dis4)
+      call popreal8(dis2)
+      call popreal8(abv4)
+      call popreal8(dr)
+      call popreal8(abv3)
+      call popreal8(abv2)
+      call popreal8(area)
+      call popinteger4(j)
+      call popinteger4(i)
+      call popreal8(aavg)
+      call popreal8(sface)
       do ii=0,nx*jl*nz-1
         i = mod(ii, nx) + 2
         j = mod(ii/nx, jl) + 1
@@ -1675,21 +1755,17 @@ branch = myIntStack(myIntPtr)
         if (porj(i, j, k) .eq. normalflux) ppor = one
         if (dss(i, j, k, 2) .lt. dss(i, j+1, k, 2)) then
           y2 = dss(i, j+1, k, 2)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           y2 = dss(i, j, k, 2)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (dpmax .gt. y2) then
           min2 = y2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           min2 = dpmax
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         dis2 = ppor*fis2*min2
         arg1 = ppor*fis4
@@ -1724,13 +1800,11 @@ myIntPtr = myIntPtr + 1
           drk = dis2*ddw6 - dis4*(w(i, j+2, k, irho)*w(i, j+2, k, itu1)-&
 &           w(i, j-1, k, irho)*w(i, j-1, k, itu1)-three*ddw6)
           kavg = half*(w(i, j, k, itu1)+w(i, j+1, k, itu1))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         else
           drk = zero
           kavg = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         end if
 ! compute the average value of gamma and compute some
 ! expressions in which it occurs.
@@ -1766,62 +1840,50 @@ myIntPtr = myIntPtr + 1
         if (addgridvelocities) sface = sfacej(i, j, k)*tmp
         if (unavg - sface + aavg .ge. 0.) then
           lam1 = unavg - sface + aavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam1 = -(unavg-sface+aavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (unavg - sface - aavg .ge. 0.) then
           lam2 = unavg - sface - aavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam2 = -(unavg-sface-aavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (unavg - sface .ge. 0.) then
           lam3 = unavg - sface
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam3 = -(unavg-sface)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         rrad = lam3 + aavg
         if (lam1 .lt. epsacoustic*rrad) then
           max6 = epsacoustic*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max6 = lam1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
 ! multiply the eigenvalues by the area to obtain
 ! the correct values for the dissipation term.
         lam1 = max6*area
         if (lam2 .lt. epsacoustic*rrad) then
           max7 = epsacoustic*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max7 = lam2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         lam2 = max7*area
         if (lam3 .lt. epsshear*rrad) then
           max8 = epsshear*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max8 = lam3
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         lam3 = max8*area
 ! some abbreviations, which occur quite often in the
@@ -1890,8 +1952,7 @@ myIntPtr = myIntPtr + 1
         lam1d = half*abv1d + half*abv2d
         lam2d = half*abv1d - half*abv2d
         max8d = area*lam3d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = epsshear*max8d
           lam3d = 0.0_8
@@ -1900,8 +1961,7 @@ branch = myIntStack(myIntPtr)
           rradd = 0.0_8
         end if
         max7d = area*lam2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = rradd + epsacoustic*max7d
           lam2d = 0.0_8
@@ -1909,8 +1969,7 @@ branch = myIntStack(myIntPtr)
           lam2d = max7d
         end if
         max6d = area*lam1d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = rradd + epsacoustic*max6d
           lam1d = 0.0_8
@@ -1919,15 +1978,13 @@ branch = myIntStack(myIntPtr)
         end if
         lam3d = lam3d + rradd
         aavgd = rradd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam3d
         else
           unavgd = unavgd - lam3d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam2d
           aavgd = aavgd - lam2d
@@ -1935,8 +1992,7 @@ branch = myIntStack(myIntPtr)
           aavgd = aavgd + lam2d
           unavgd = unavgd - lam2d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam1d
           aavgd = aavgd + lam1d
@@ -1973,8 +2029,7 @@ branch = myIntStack(myIntPtr)
         wd(i, j, k, ivy) = wd(i, j, k, ivy) + half*vavgd
         wd(i, j+1, k, ivx) = wd(i, j+1, k, ivx) + half*uavgd
         wd(i, j, k, ivx) = wd(i, j, k, ivx) + half*uavgd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dis2d = 0.0_8
           dis4d = 0.0_8
@@ -2069,21 +2124,45 @@ branch = myIntStack(myIntPtr)
         wd(i, j, k, irho) = wd(i, j, k, irho) - ddw1d
         call mydim_fast_b(arg1, arg1d, dis2, dis2d, dis4d)
         min2d = ppor*fis2*dis2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           y2d = min2d
         else
           y2d = 0.0_8
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dssd(i, j+1, k, 2) = dssd(i, j+1, k, 2) + y2d
         else
           dssd(i, j, k, 2) = dssd(i, j, k, 2) + y2d
         end if
       end do
+      call popreal8(sz)
+      call popreal8(sy)
+      call popreal8(sx)
+      call popreal8(ppor)
+      call popreal8(lam3)
+      call popreal8(a2avg)
+      call popreal8(drw)
+      call popreal8(drv)
+      call popreal8(dru)
+      call popreal8(ddw6)
+      call popreal8(havg)
+      call popreal8(ddw4)
+      call popreal8(ddw3)
+      call popreal8(ddw2)
+      call popreal8(dre)
+      call popreal8(dis4)
+      call popreal8(dis2)
+      call popreal8(abv4)
+      call popreal8(dr)
+      call popreal8(abv3)
+      call popreal8(abv2)
+      call popreal8(area)
+      call popinteger4(j)
+      call popinteger4(i)
+      call popreal8(aavg)
+      call popreal8(sface)
       do ii=0,il*ny*nz-1
         i = mod(ii, il) + 1
         j = mod(ii/il, ny) + 2
@@ -2093,21 +2172,17 @@ branch = myIntStack(myIntPtr)
         if (pori(i, j, k) .eq. normalflux) ppor = one
         if (dss(i, j, k, 1) .lt. dss(i+1, j, k, 1)) then
           y1 = dss(i+1, j, k, 1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           y1 = dss(i, j, k, 1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (dpmax .gt. y1) then
           min1 = y1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           min1 = dpmax
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         dis2 = ppor*fis2*min1
         arg1 = ppor*fis4
@@ -2142,13 +2217,11 @@ myIntPtr = myIntPtr + 1
           drk = dis2*ddw6 - dis4*(w(i+2, j, k, irho)*w(i+2, j, k, itu1)-&
 &           w(i-1, j, k, irho)*w(i-1, j, k, itu1)-three*ddw6)
           kavg = half*(w(i, j, k, itu1)+w(i+1, j, k, itu1))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         else
           drk = zero
           kavg = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         end if
 ! compute the average value of gamma and compute some
 ! expressions in which it occurs.
@@ -2184,62 +2257,50 @@ myIntPtr = myIntPtr + 1
         if (addgridvelocities) sface = sfacei(i, j, k)*tmp
         if (unavg - sface + aavg .ge. 0.) then
           lam1 = unavg - sface + aavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam1 = -(unavg-sface+aavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (unavg - sface - aavg .ge. 0.) then
           lam2 = unavg - sface - aavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam2 = -(unavg-sface-aavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (unavg - sface .ge. 0.) then
           lam3 = unavg - sface
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           lam3 = -(unavg-sface)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         rrad = lam3 + aavg
         if (lam1 .lt. epsacoustic*rrad) then
           max2 = epsacoustic*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max2 = lam1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
 ! multiply the eigenvalues by the area to obtain
 ! the correct values for the dissipation term.
         lam1 = max2*area
         if (lam2 .lt. epsacoustic*rrad) then
           max3 = epsacoustic*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max3 = lam2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         lam2 = max3*area
         if (lam3 .lt. epsshear*rrad) then
           max4 = epsshear*rrad
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           max4 = lam3
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         lam3 = max4*area
 ! some abbreviations, which occur quite often in the
@@ -2308,8 +2369,7 @@ myIntPtr = myIntPtr + 1
         lam1d = half*abv1d + half*abv2d
         lam2d = half*abv1d - half*abv2d
         max4d = area*lam3d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = epsshear*max4d
           lam3d = 0.0_8
@@ -2318,8 +2378,7 @@ branch = myIntStack(myIntPtr)
           rradd = 0.0_8
         end if
         max3d = area*lam2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = rradd + epsacoustic*max3d
           lam2d = 0.0_8
@@ -2327,8 +2386,7 @@ branch = myIntStack(myIntPtr)
           lam2d = max3d
         end if
         max2d = area*lam1d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           rradd = rradd + epsacoustic*max2d
           lam1d = 0.0_8
@@ -2337,15 +2395,13 @@ branch = myIntStack(myIntPtr)
         end if
         lam3d = lam3d + rradd
         aavgd = rradd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam3d
         else
           unavgd = unavgd - lam3d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam2d
           aavgd = aavgd - lam2d
@@ -2353,8 +2409,7 @@ branch = myIntStack(myIntPtr)
           aavgd = aavgd + lam2d
           unavgd = unavgd - lam2d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           unavgd = unavgd + lam1d
           aavgd = aavgd + lam1d
@@ -2391,8 +2446,7 @@ branch = myIntStack(myIntPtr)
         wd(i, j, k, ivy) = wd(i, j, k, ivy) + half*vavgd
         wd(i+1, j, k, ivx) = wd(i+1, j, k, ivx) + half*uavgd
         wd(i, j, k, ivx) = wd(i, j, k, ivx) + half*uavgd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dis2d = 0.0_8
           dis4d = 0.0_8
@@ -2487,98 +2541,82 @@ branch = myIntStack(myIntPtr)
         wd(i, j, k, irho) = wd(i, j, k, irho) - ddw1d
         call mydim_fast_b(arg1, arg1d, dis2, dis2d, dis4d)
         min1d = ppor*fis2*dis2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           y1d = min1d
         else
           y1d = 0.0_8
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dssd(i+1, j, k, 1) = dssd(i+1, j, k, 1) + y1d
         else
           dssd(i, j, k, 1) = dssd(i, j, k, 1) + y1d
         end if
       end do
+      call popinteger4(j)
+      call popinteger4(i)
       do ii=0,ie*je*ke-1
         i = mod(ii, ie) + 1
         j = mod(ii/ie, je) + 1
         k = ii/(ie*je) + 1
         if (p(i+1, j, k) - p(i, j, k) .ge. 0.) then
           abs1 = p(i+1, j, k) - p(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         else
           abs1 = -(p(i+1, j, k)-p(i, j, k))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         end if
         if (p(i, j, k) - p(i-1, j, k) .ge. 0.) then
           abs4 = p(i, j, k) - p(i-1, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           abs4 = -(p(i, j, k)-p(i-1, j, k))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         x1 = (p(i+1, j, k)-two*p(i, j, k)+p(i-1, j, k))/(omega*(p(i+1, j&
 &         , k)+two*p(i, j, k)+p(i-1, j, k))+oneminomega*(abs1+abs4)+plim&
 &         )
         if (x1 .ge. 0.) then
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (p(i, j+1, k) - p(i, j, k) .ge. 0.) then
           abs2 = p(i, j+1, k) - p(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         else
           abs2 = -(p(i, j+1, k)-p(i, j, k))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         end if
         if (p(i, j, k) - p(i, j-1, k) .ge. 0.) then
           abs5 = p(i, j, k) - p(i, j-1, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           abs5 = -(p(i, j, k)-p(i, j-1, k))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         x2 = (p(i, j+1, k)-two*p(i, j, k)+p(i, j-1, k))/(omega*(p(i, j+1&
 &         , k)+two*p(i, j, k)+p(i, j-1, k))+oneminomega*(abs2+abs5)+plim&
 &         )
         if (x2 .ge. 0.) then
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (p(i, j, k+1) - p(i, j, k) .ge. 0.) then
           abs3 = p(i, j, k+1) - p(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         else
           abs3 = -(p(i, j, k+1)-p(i, j, k))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         end if
         if (p(i, j, k) - p(i, j, k-1) .ge. 0.) then
           abs6 = p(i, j, k) - p(i, j, k-1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           abs6 = -(p(i, j, k)-p(i, j, k-1))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         x3 = (p(i, j, k+1)-two*p(i, j, k)+p(i, j, k-1))/(omega*(p(i, j, &
 &         k+1)+two*p(i, j, k)+p(i, j, k-1))+oneminomega*(abs3+abs6)+plim&
@@ -2601,8 +2639,7 @@ myIntPtr = myIntPtr + 1
         pd(i, j, k-1) = pd(i, j, k-1) + tempd7 + tempd5
         abs3d = oneminomega*tempd6
         abs6d = oneminomega*tempd6
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           pd(i, j, k) = pd(i, j, k) + abs6d
           pd(i, j, k-1) = pd(i, j, k-1) - abs6d
@@ -2610,8 +2647,7 @@ branch = myIntStack(myIntPtr)
           pd(i, j, k-1) = pd(i, j, k-1) + abs6d
           pd(i, j, k) = pd(i, j, k) - abs6d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           pd(i, j, k) = pd(i, j, k) + abs3d
           pd(i, j, k+1) = pd(i, j, k+1) - abs3d
@@ -2619,8 +2655,7 @@ branch = myIntStack(myIntPtr)
           pd(i, j, k+1) = pd(i, j, k+1) + abs3d
           pd(i, j, k) = pd(i, j, k) - abs3d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           x2d = dssd(i, j, k, 2)
           dssd(i, j, k, 2) = 0.0_8
@@ -2639,8 +2674,7 @@ branch = myIntStack(myIntPtr)
         pd(i, j-1, k) = pd(i, j-1, k) + tempd4 + tempd2
         abs2d = oneminomega*tempd3
         abs5d = oneminomega*tempd3
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           pd(i, j, k) = pd(i, j, k) + abs5d
           pd(i, j-1, k) = pd(i, j-1, k) - abs5d
@@ -2648,8 +2682,7 @@ branch = myIntStack(myIntPtr)
           pd(i, j-1, k) = pd(i, j-1, k) + abs5d
           pd(i, j, k) = pd(i, j, k) - abs5d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           pd(i, j, k) = pd(i, j, k) + abs2d
           pd(i, j+1, k) = pd(i, j+1, k) - abs2d
@@ -2657,8 +2690,7 @@ branch = myIntStack(myIntPtr)
           pd(i, j+1, k) = pd(i, j+1, k) + abs2d
           pd(i, j, k) = pd(i, j, k) - abs2d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           x1d = dssd(i, j, k, 1)
           dssd(i, j, k, 1) = 0.0_8
@@ -2677,8 +2709,7 @@ branch = myIntStack(myIntPtr)
         pd(i-1, j, k) = pd(i-1, j, k) + tempd1 + tempd
         abs1d = oneminomega*tempd0
         abs4d = oneminomega*tempd0
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           pd(i, j, k) = pd(i, j, k) + abs4d
           pd(i-1, j, k) = pd(i-1, j, k) - abs4d
@@ -2686,8 +2717,7 @@ branch = myIntStack(myIntPtr)
           pd(i-1, j, k) = pd(i-1, j, k) + abs4d
           pd(i, j, k) = pd(i, j, k) - abs4d
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           pd(i, j, k) = pd(i, j, k) + abs1d
           pd(i+1, j, k) = pd(i+1, j, k) - abs1d
@@ -3515,6 +3545,8 @@ branch = myIntStack(myIntPtr)
       case default
         call pushcontrol2b(2)
       end select
+      call pushinteger4(i)
+      call pushinteger4(j)
 ! compute the pressure sensor for each cell, in each direction:
       do ii=0,ie*je*ke-1
         i = mod(ii, ie) + 1
@@ -3549,6 +3581,24 @@ branch = myIntStack(myIntPtr)
 ! initialize the dissipative residual to a certain times,
 ! possibly zero, the previously stored value. owned cells
 ! only, because the halo values do not matter.
+      call pushinteger4(i)
+      call pushinteger4(j)
+      call pushinteger4(i)
+      call pushinteger4(j)
+      call pushreal8(dis4)
+      call pushreal8(ddw2)
+      call pushreal8(ddw3)
+      call pushreal8(ddw4)
+      call pushreal8(ddw5)
+      call pushreal8(ppor)
+      call pushinteger4(i)
+      call pushinteger4(j)
+      call pushreal8(dis4)
+      call pushreal8(ddw2)
+      call pushreal8(ddw3)
+      call pushreal8(ddw4)
+      call pushreal8(ddw5)
+      call pushreal8(ppor)
       radkd = 0.0_8
       dssd = 0.0_8
       do ii=0,nx*ny*kl-1
@@ -3561,21 +3611,17 @@ branch = myIntStack(myIntPtr)
         rrad = ppor*(radk(i, j, k)+radk(i, j, k+1))
         if (dss(i, j, k, 3) .lt. dss(i, j, k+1, 3)) then
           y3 = dss(i, j, k+1, 3)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           y3 = dss(i, j, k, 3)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (dssmax .gt. y3) then
           min3 = y3
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           min3 = dssmax
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         dis2 = fis2*rrad*min3
         arg1 = fis4*rrad
@@ -3680,15 +3726,13 @@ myIntPtr = myIntPtr + 1
         call mydim_fast_b(arg1, arg1d, dis2, dis2d, dis4d)
         rradd = fis2*min3*dis2d + fis4*arg1d
         min3d = fis2*rrad*dis2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           y3d = min3d
         else
           y3d = 0.0_8
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dssd(i, j, k+1, 3) = dssd(i, j, k+1, 3) + y3d
         else
@@ -3697,6 +3741,14 @@ branch = myIntStack(myIntPtr)
         radkd(i, j, k) = radkd(i, j, k) + ppor*rradd
         radkd(i, j, k+1) = radkd(i, j, k+1) + ppor*rradd
       end do
+      call popreal8(ppor)
+      call popreal8(ddw5)
+      call popreal8(ddw4)
+      call popreal8(ddw3)
+      call popreal8(ddw2)
+      call popreal8(dis4)
+      call popinteger4(j)
+      call popinteger4(i)
       radjd = 0.0_8
       do ii=0,nx*jl*nz-1
         i = mod(ii, nx) + 2
@@ -3708,21 +3760,17 @@ branch = myIntStack(myIntPtr)
         rrad = ppor*(radj(i, j, k)+radj(i, j+1, k))
         if (dss(i, j, k, 2) .lt. dss(i, j+1, k, 2)) then
           y2 = dss(i, j+1, k, 2)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           y2 = dss(i, j, k, 2)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (dssmax .gt. y2) then
           min2 = y2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           min2 = dssmax
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         dis2 = fis2*rrad*min2
         arg1 = fis4*rrad
@@ -3827,15 +3875,13 @@ myIntPtr = myIntPtr + 1
         call mydim_fast_b(arg1, arg1d, dis2, dis2d, dis4d)
         rradd = fis2*min2*dis2d + fis4*arg1d
         min2d = fis2*rrad*dis2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           y2d = min2d
         else
           y2d = 0.0_8
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dssd(i, j+1, k, 2) = dssd(i, j+1, k, 2) + y2d
         else
@@ -3844,6 +3890,14 @@ branch = myIntStack(myIntPtr)
         radjd(i, j, k) = radjd(i, j, k) + ppor*rradd
         radjd(i, j+1, k) = radjd(i, j+1, k) + ppor*rradd
       end do
+      call popreal8(ppor)
+      call popreal8(ddw5)
+      call popreal8(ddw4)
+      call popreal8(ddw3)
+      call popreal8(ddw2)
+      call popreal8(dis4)
+      call popinteger4(j)
+      call popinteger4(i)
       radid = 0.0_8
       do ii=0,il*ny*nz-1
         i = mod(ii, il) + 1
@@ -3855,21 +3909,17 @@ branch = myIntStack(myIntPtr)
         rrad = ppor*(radi(i, j, k)+radi(i+1, j, k))
         if (dss(i, j, k, 1) .lt. dss(i+1, j, k, 1)) then
           y1 = dss(i+1, j, k, 1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           y1 = dss(i, j, k, 1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         if (dssmax .gt. y1) then
           min1 = y1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
           min1 = dssmax
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         dis2 = fis2*rrad*min1
         arg1 = fis4*rrad
@@ -3974,15 +4024,13 @@ myIntPtr = myIntPtr + 1
         call mydim_fast_b(arg1, arg1d, dis2, dis2d, dis4d)
         rradd = fis2*min1*dis2d + fis4*arg1d
         min1d = fis2*rrad*dis2d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           y1d = min1d
         else
           y1d = 0.0_8
         end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           dssd(i+1, j, k, 1) = dssd(i+1, j, k, 1) + y1d
         else
@@ -3991,6 +4039,8 @@ branch = myIntStack(myIntPtr)
         radid(i, j, k) = radid(i, j, k) + ppor*rradd
         radid(i+1, j, k) = radid(i+1, j, k) + ppor*rradd
       end do
+      call popinteger4(j)
+      call popinteger4(i)
       fwd = sfil*fwd
       ssd = 0.0_8
       do ii=0,ie*je*ke-1
@@ -4000,20 +4050,16 @@ branch = myIntStack(myIntPtr)
         x1 = (ss(i+1, j, k)-two*ss(i, j, k)+ss(i-1, j, k))/(ss(i+1, j, k&
 &         )+two*ss(i, j, k)+ss(i-1, j, k)+sslim)
         if (x1 .ge. 0.) then
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         x2 = (ss(i, j+1, k)-two*ss(i, j, k)+ss(i, j-1, k))/(ss(i, j+1, k&
 &         )+two*ss(i, j, k)+ss(i, j-1, k)+sslim)
         if (x2 .ge. 0.) then
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         x3 = (ss(i, j, k+1)-two*ss(i, j, k)+ss(i, j, k-1))/(ss(i, j, k+1&
 &         )+two*ss(i, j, k)+ss(i, j, k-1)+sslim)
@@ -4031,8 +4077,7 @@ myIntPtr = myIntPtr + 1
         ssd(i, j, k+1) = ssd(i, j, k+1) + tempd4 + tempd3
         ssd(i, j, k) = ssd(i, j, k) + two*tempd4 - two*tempd3
         ssd(i, j, k-1) = ssd(i, j, k-1) + tempd4 + tempd3
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           x2d = dssd(i, j, k, 2)
           dssd(i, j, k, 2) = 0.0_8
@@ -4047,8 +4092,7 @@ branch = myIntStack(myIntPtr)
         ssd(i, j+1, k) = ssd(i, j+1, k) + tempd2 + tempd1
         ssd(i, j, k) = ssd(i, j, k) + two*tempd2 - two*tempd1
         ssd(i, j-1, k) = ssd(i, j-1, k) + tempd2 + tempd1
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           x1d = dssd(i, j, k, 1)
           dssd(i, j, k, 1) = 0.0_8
@@ -4064,6 +4108,8 @@ branch = myIntStack(myIntPtr)
         ssd(i, j, k) = ssd(i, j, k) + two*tempd0 - two*tempd
         ssd(i-1, j, k) = ssd(i-1, j, k) + tempd0 + tempd
       end do
+      call popinteger4(j)
+      call popinteger4(i)
       call popcontrol2b(branch)
       if (branch .eq. 0) then
         do ii=0,(ib+1)*(jb+1)*(kb+1)-1
@@ -5504,43 +5550,53 @@ branch = myIntStack(myIntPtr)
             do i=1,il
 ! store the normal vector, the porosity and the
 ! mesh velocity if present.
+              call pushreal8(sx)
               sx = si(i, j, k, 1)
+              call pushreal8(sy)
               sy = si(i, j, k, 2)
+              call pushreal8(sz)
               sz = si(i, j, k, 3)
               if (addgridvelocities) then
+                call pushreal8(sface)
                 sface = sfacei(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! determine the left and right state.
+              call pushreal8(left(irho))
               left(irho) = w(i, j, k, irho)
+              call pushreal8(left(ivx))
               left(ivx) = w(i, j, k, ivx)
+              call pushreal8(left(ivy))
               left(ivy) = w(i, j, k, ivy)
+              call pushreal8(left(ivz))
               left(ivz) = w(i, j, k, ivz)
+              call pushreal8(left(irhoe))
               left(irhoe) = p(i, j, k)
               if (correctfork) then
+                call pushreal8(left(itu1))
                 left(itu1) = w(i, j, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
+              call pushreal8(right(irho))
               right(irho) = w(i+1, j, k, irho)
+              call pushreal8(right(ivx))
               right(ivx) = w(i+1, j, k, ivx)
+              call pushreal8(right(ivy))
               right(ivy) = w(i+1, j, k, ivy)
+              call pushreal8(right(ivz))
               right(ivz) = w(i+1, j, k, ivz)
+              call pushreal8(right(irhoe))
               right(irhoe) = p(i+1, j, k)
               if (correctfork) then
+                call pushreal8(right(itu1))
                 right(itu1) = w(i+1, j, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
             end do
           end do
@@ -5553,43 +5609,53 @@ myIntPtr = myIntPtr + 1
             do i=2,il
 ! store the normal vector, the porosity and the
 ! mesh velocity if present.
+              call pushreal8(sx)
               sx = sj(i, j, k, 1)
+              call pushreal8(sy)
               sy = sj(i, j, k, 2)
+              call pushreal8(sz)
               sz = sj(i, j, k, 3)
               if (addgridvelocities) then
+                call pushreal8(sface)
                 sface = sfacej(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! determine the left and right state.
+              call pushreal8(left(irho))
               left(irho) = w(i, j, k, irho)
+              call pushreal8(left(ivx))
               left(ivx) = w(i, j, k, ivx)
+              call pushreal8(left(ivy))
               left(ivy) = w(i, j, k, ivy)
+              call pushreal8(left(ivz))
               left(ivz) = w(i, j, k, ivz)
+              call pushreal8(left(irhoe))
               left(irhoe) = p(i, j, k)
               if (correctfork) then
+                call pushreal8(left(itu1))
                 left(itu1) = w(i, j, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
+              call pushreal8(right(irho))
               right(irho) = w(i, j+1, k, irho)
+              call pushreal8(right(ivx))
               right(ivx) = w(i, j+1, k, ivx)
+              call pushreal8(right(ivy))
               right(ivy) = w(i, j+1, k, ivy)
+              call pushreal8(right(ivz))
               right(ivz) = w(i, j+1, k, ivz)
+              call pushreal8(right(irhoe))
               right(irhoe) = p(i, j+1, k)
               if (correctfork) then
+                call pushreal8(right(itu1))
                 right(itu1) = w(i, j+1, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
             end do
           end do
@@ -5602,43 +5668,53 @@ myIntPtr = myIntPtr + 1
             do i=2,il
 ! store the normal vector, the porosity and the
 ! mesh velocity if present.
+              call pushreal8(sx)
               sx = sk(i, j, k, 1)
+              call pushreal8(sy)
               sy = sk(i, j, k, 2)
+              call pushreal8(sz)
               sz = sk(i, j, k, 3)
               if (addgridvelocities) then
+                call pushreal8(sface)
                 sface = sfacek(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! determine the left and right state.
+              call pushreal8(left(irho))
               left(irho) = w(i, j, k, irho)
+              call pushreal8(left(ivx))
               left(ivx) = w(i, j, k, ivx)
+              call pushreal8(left(ivy))
               left(ivy) = w(i, j, k, ivy)
+              call pushreal8(left(ivz))
               left(ivz) = w(i, j, k, ivz)
+              call pushreal8(left(irhoe))
               left(irhoe) = p(i, j, k)
               if (correctfork) then
+                call pushreal8(left(itu1))
                 left(itu1) = w(i, j, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
+              call pushreal8(right(irho))
               right(irho) = w(i, j, k+1, irho)
+              call pushreal8(right(ivx))
               right(ivx) = w(i, j, k+1, ivx)
+              call pushreal8(right(ivy))
               right(ivy) = w(i, j, k+1, ivy)
+              call pushreal8(right(ivz))
               right(ivz) = w(i, j, k+1, ivz)
+              call pushreal8(right(irhoe))
               right(irhoe) = p(i, j, k+1)
               if (correctfork) then
+                call pushreal8(right(itu1))
                 right(itu1) = w(i, j, k+1, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
             end do
           end do
@@ -5663,41 +5739,53 @@ myIntPtr = myIntPtr + 1
               por = pork(i, j, k)
               call riemannflux_fast_b(left, leftd, right, rightd, flux, &
 &                               fluxd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
+                call popreal8(right(itu1))
                 wd(i, j, k+1, itu1) = wd(i, j, k+1, itu1) + rightd(itu1)
                 rightd(itu1) = 0.0_8
               end if
+              call popreal8(right(irhoe))
               pd(i, j, k+1) = pd(i, j, k+1) + rightd(irhoe)
               rightd(irhoe) = 0.0_8
+              call popreal8(right(ivz))
               wd(i, j, k+1, ivz) = wd(i, j, k+1, ivz) + rightd(ivz)
               rightd(ivz) = 0.0_8
+              call popreal8(right(ivy))
               wd(i, j, k+1, ivy) = wd(i, j, k+1, ivy) + rightd(ivy)
               rightd(ivy) = 0.0_8
+              call popreal8(right(ivx))
               wd(i, j, k+1, ivx) = wd(i, j, k+1, ivx) + rightd(ivx)
               rightd(ivx) = 0.0_8
+              call popreal8(right(irho))
               wd(i, j, k+1, irho) = wd(i, j, k+1, irho) + rightd(irho)
               rightd(irho) = 0.0_8
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
+                call popreal8(left(itu1))
                 wd(i, j, k, itu1) = wd(i, j, k, itu1) + leftd(itu1)
                 leftd(itu1) = 0.0_8
               end if
+              call popreal8(left(irhoe))
               pd(i, j, k) = pd(i, j, k) + leftd(irhoe)
               leftd(irhoe) = 0.0_8
+              call popreal8(left(ivz))
               wd(i, j, k, ivz) = wd(i, j, k, ivz) + leftd(ivz)
               leftd(ivz) = 0.0_8
+              call popreal8(left(ivy))
               wd(i, j, k, ivy) = wd(i, j, k, ivy) + leftd(ivy)
               leftd(ivy) = 0.0_8
+              call popreal8(left(ivx))
               wd(i, j, k, ivx) = wd(i, j, k, ivx) + leftd(ivx)
               leftd(ivx) = 0.0_8
+              call popreal8(left(irho))
               wd(i, j, k, irho) = wd(i, j, k, irho) + leftd(irho)
               leftd(irho) = 0.0_8
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) call popreal8(sface)
+              call popreal8(sz)
+              call popreal8(sy)
+              call popreal8(sx)
             end do
           end do
         end do
@@ -5718,41 +5806,53 @@ branch = myIntStack(myIntPtr)
               por = porj(i, j, k)
               call riemannflux_fast_b(left, leftd, right, rightd, flux, &
 &                               fluxd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
+                call popreal8(right(itu1))
                 wd(i, j+1, k, itu1) = wd(i, j+1, k, itu1) + rightd(itu1)
                 rightd(itu1) = 0.0_8
               end if
+              call popreal8(right(irhoe))
               pd(i, j+1, k) = pd(i, j+1, k) + rightd(irhoe)
               rightd(irhoe) = 0.0_8
+              call popreal8(right(ivz))
               wd(i, j+1, k, ivz) = wd(i, j+1, k, ivz) + rightd(ivz)
               rightd(ivz) = 0.0_8
+              call popreal8(right(ivy))
               wd(i, j+1, k, ivy) = wd(i, j+1, k, ivy) + rightd(ivy)
               rightd(ivy) = 0.0_8
+              call popreal8(right(ivx))
               wd(i, j+1, k, ivx) = wd(i, j+1, k, ivx) + rightd(ivx)
               rightd(ivx) = 0.0_8
+              call popreal8(right(irho))
               wd(i, j+1, k, irho) = wd(i, j+1, k, irho) + rightd(irho)
               rightd(irho) = 0.0_8
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
+                call popreal8(left(itu1))
                 wd(i, j, k, itu1) = wd(i, j, k, itu1) + leftd(itu1)
                 leftd(itu1) = 0.0_8
               end if
+              call popreal8(left(irhoe))
               pd(i, j, k) = pd(i, j, k) + leftd(irhoe)
               leftd(irhoe) = 0.0_8
+              call popreal8(left(ivz))
               wd(i, j, k, ivz) = wd(i, j, k, ivz) + leftd(ivz)
               leftd(ivz) = 0.0_8
+              call popreal8(left(ivy))
               wd(i, j, k, ivy) = wd(i, j, k, ivy) + leftd(ivy)
               leftd(ivy) = 0.0_8
+              call popreal8(left(ivx))
               wd(i, j, k, ivx) = wd(i, j, k, ivx) + leftd(ivx)
               leftd(ivx) = 0.0_8
+              call popreal8(left(irho))
               wd(i, j, k, irho) = wd(i, j, k, irho) + leftd(irho)
               leftd(irho) = 0.0_8
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) call popreal8(sface)
+              call popreal8(sz)
+              call popreal8(sy)
+              call popreal8(sx)
             end do
           end do
         end do
@@ -5773,41 +5873,53 @@ branch = myIntStack(myIntPtr)
               por = pori(i, j, k)
               call riemannflux_fast_b(left, leftd, right, rightd, flux, &
 &                               fluxd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
+                call popreal8(right(itu1))
                 wd(i+1, j, k, itu1) = wd(i+1, j, k, itu1) + rightd(itu1)
                 rightd(itu1) = 0.0_8
               end if
+              call popreal8(right(irhoe))
               pd(i+1, j, k) = pd(i+1, j, k) + rightd(irhoe)
               rightd(irhoe) = 0.0_8
+              call popreal8(right(ivz))
               wd(i+1, j, k, ivz) = wd(i+1, j, k, ivz) + rightd(ivz)
               rightd(ivz) = 0.0_8
+              call popreal8(right(ivy))
               wd(i+1, j, k, ivy) = wd(i+1, j, k, ivy) + rightd(ivy)
               rightd(ivy) = 0.0_8
+              call popreal8(right(ivx))
               wd(i+1, j, k, ivx) = wd(i+1, j, k, ivx) + rightd(ivx)
               rightd(ivx) = 0.0_8
+              call popreal8(right(irho))
               wd(i+1, j, k, irho) = wd(i+1, j, k, irho) + rightd(irho)
               rightd(irho) = 0.0_8
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
+                call popreal8(left(itu1))
                 wd(i, j, k, itu1) = wd(i, j, k, itu1) + leftd(itu1)
                 leftd(itu1) = 0.0_8
               end if
+              call popreal8(left(irhoe))
               pd(i, j, k) = pd(i, j, k) + leftd(irhoe)
               leftd(irhoe) = 0.0_8
+              call popreal8(left(ivz))
               wd(i, j, k, ivz) = wd(i, j, k, ivz) + leftd(ivz)
               leftd(ivz) = 0.0_8
+              call popreal8(left(ivy))
               wd(i, j, k, ivy) = wd(i, j, k, ivy) + leftd(ivy)
               leftd(ivy) = 0.0_8
+              call popreal8(left(ivx))
               wd(i, j, k, ivx) = wd(i, j, k, ivx) + leftd(ivx)
               leftd(ivx) = 0.0_8
+              call popreal8(left(irho))
               wd(i, j, k, irho) = wd(i, j, k, irho) + leftd(irho)
               leftd(irho) = 0.0_8
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) call popreal8(sface)
+              call popreal8(sz)
+              call popreal8(sy)
+              call popreal8(sx)
             end do
           end do
         end do
@@ -5849,13 +5961,16 @@ branch = myIntStack(myIntPtr)
                 du1(itu1) = w(i, j, k, itu1) - w(i-1, j, k, itu1)
                 du2(itu1) = w(i+1, j, k, itu1) - w(i, j, k, itu1)
                 du3(itu1) = w(i+2, j, k, itu1) - w(i+1, j, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! compute the differences from the first order scheme.
+              call pushreal8array(right, nw)
+              call pushreal8array(left, nw)
+              call pushreal8array(du3, nw)
+              call pushreal8array(du2, nw)
+              call pushreal8array(du1, nw)
               call leftrightstate(du1, du2, du3, rotmatrixi, left, right&
 &                          )
 ! add the first order part to the currently stored
@@ -5874,24 +5989,24 @@ myIntPtr = myIntPtr + 1
               if (correctfork) then
                 left(itu1) = left(itu1) + w(i, j, k, itu1)
                 right(itu1) = right(itu1) + w(i+1, j, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! store the normal vector, the porosity and the
 ! mesh velocity if present.
+              call pushreal8(sx)
               sx = si(i, j, k, 1)
+              call pushreal8(sy)
               sy = si(i, j, k, 2)
+              call pushreal8(sz)
               sz = si(i, j, k, 3)
               if (addgridvelocities) then
+                call pushreal8(sface)
                 sface = sfacei(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
             end do
           end do
@@ -5923,13 +6038,16 @@ myIntPtr = myIntPtr + 1
                 du1(itu1) = w(i, j, k, itu1) - w(i, j-1, k, itu1)
                 du2(itu1) = w(i, j+1, k, itu1) - w(i, j, k, itu1)
                 du3(itu1) = w(i, j+2, k, itu1) - w(i, j+1, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! compute the differences from the first order scheme.
+              call pushreal8array(right, nw)
+              call pushreal8array(left, nw)
+              call pushreal8array(du3, nw)
+              call pushreal8array(du2, nw)
+              call pushreal8array(du1, nw)
               call leftrightstate(du1, du2, du3, rotmatrixj, left, right&
 &                          )
 ! add the first order part to the currently stored
@@ -5948,24 +6066,24 @@ myIntPtr = myIntPtr + 1
               if (correctfork) then
                 left(itu1) = left(itu1) + w(i, j, k, itu1)
                 right(itu1) = right(itu1) + w(i, j+1, k, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! store the normal vector, the porosity and the
 ! mesh velocity if present.
+              call pushreal8(sx)
               sx = sj(i, j, k, 1)
+              call pushreal8(sy)
               sy = sj(i, j, k, 2)
+              call pushreal8(sz)
               sz = sj(i, j, k, 3)
               if (addgridvelocities) then
+                call pushreal8(sface)
                 sface = sfacej(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
             end do
           end do
@@ -5997,13 +6115,16 @@ myIntPtr = myIntPtr + 1
                 du1(itu1) = w(i, j, k, itu1) - w(i, j, k-1, itu1)
                 du2(itu1) = w(i, j, k+1, itu1) - w(i, j, k, itu1)
                 du3(itu1) = w(i, j, k+2, itu1) - w(i, j, k+1, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! compute the differences from the first order scheme.
+              call pushreal8array(right, nw)
+              call pushreal8array(left, nw)
+              call pushreal8array(du3, nw)
+              call pushreal8array(du2, nw)
+              call pushreal8array(du1, nw)
               call leftrightstate(du1, du2, du3, rotmatrixk, left, right&
 &                          )
 ! add the first order part to the currently stored
@@ -6022,24 +6143,24 @@ myIntPtr = myIntPtr + 1
               if (correctfork) then
                 left(itu1) = left(itu1) + w(i, j, k, itu1)
                 right(itu1) = right(itu1) + w(i, j, k+1, itu1)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
 ! store the normal vector, the porosity and the
 ! mesh velocity if present.
+              call pushreal8(sx)
               sx = sk(i, j, k, 1)
+              call pushreal8(sy)
               sy = sk(i, j, k, 2)
+              call pushreal8(sz)
               sz = sk(i, j, k, 3)
               if (addgridvelocities) then
+                call pushreal8(sface)
                 sface = sfacek(i, j, k)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+                call pushcontrol1b(0)
               else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+                call pushcontrol1b(1)
               end if
             end do
           end do
@@ -6067,11 +6188,12 @@ myIntPtr = myIntPtr + 1
               por = pork(i, j, k)
               call riemannflux_fast_b(left, leftd, right, rightd, flux, &
 &                               fluxd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) call popreal8(sface)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popreal8(sz)
+              call popreal8(sy)
+              call popreal8(sx)
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
                 wd(i, j, k+1, itu1) = wd(i, j, k+1, itu1) + rightd(itu1)
                 wd(i, j, k, itu1) = wd(i, j, k, itu1) + leftd(itu1)
@@ -6086,11 +6208,15 @@ branch = myIntStack(myIntPtr)
               wd(i, j, k, ivy) = wd(i, j, k, ivy) + leftd(ivy)
               wd(i, j, k, ivx) = wd(i, j, k, ivx) + leftd(ivx)
               wd(i, j, k, irho) = wd(i, j, k, irho) + leftd(irho)
+              call popreal8array(du1, nw)
+              call popreal8array(du2, nw)
+              call popreal8array(du3, nw)
+              call popreal8array(left, nw)
+              call popreal8array(right, nw)
               call leftrightstate_fast_b(du1, du1d, du2, du2d, du3, du3d&
 &                                  , rotmatrixk, left, leftd, right, &
 &                                  rightd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
                 wd(i, j, k+2, itu1) = wd(i, j, k+2, itu1) + du3d(itu1)
                 wd(i, j, k+1, itu1) = wd(i, j, k+1, itu1) - du3d(itu1)
@@ -6167,11 +6293,12 @@ branch = myIntStack(myIntPtr)
               por = porj(i, j, k)
               call riemannflux_fast_b(left, leftd, right, rightd, flux, &
 &                               fluxd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) call popreal8(sface)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popreal8(sz)
+              call popreal8(sy)
+              call popreal8(sx)
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
                 wd(i, j+1, k, itu1) = wd(i, j+1, k, itu1) + rightd(itu1)
                 wd(i, j, k, itu1) = wd(i, j, k, itu1) + leftd(itu1)
@@ -6186,11 +6313,15 @@ branch = myIntStack(myIntPtr)
               wd(i, j, k, ivy) = wd(i, j, k, ivy) + leftd(ivy)
               wd(i, j, k, ivx) = wd(i, j, k, ivx) + leftd(ivx)
               wd(i, j, k, irho) = wd(i, j, k, irho) + leftd(irho)
+              call popreal8array(du1, nw)
+              call popreal8array(du2, nw)
+              call popreal8array(du3, nw)
+              call popreal8array(left, nw)
+              call popreal8array(right, nw)
               call leftrightstate_fast_b(du1, du1d, du2, du2d, du3, du3d&
 &                                  , rotmatrixj, left, leftd, right, &
 &                                  rightd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
                 wd(i, j+2, k, itu1) = wd(i, j+2, k, itu1) + du3d(itu1)
                 wd(i, j+1, k, itu1) = wd(i, j+1, k, itu1) - du3d(itu1)
@@ -6267,11 +6398,12 @@ branch = myIntStack(myIntPtr)
               por = pori(i, j, k)
               call riemannflux_fast_b(left, leftd, right, rightd, flux, &
 &                               fluxd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) call popreal8(sface)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popreal8(sz)
+              call popreal8(sy)
+              call popreal8(sx)
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
                 wd(i+1, j, k, itu1) = wd(i+1, j, k, itu1) + rightd(itu1)
                 wd(i, j, k, itu1) = wd(i, j, k, itu1) + leftd(itu1)
@@ -6286,11 +6418,15 @@ branch = myIntStack(myIntPtr)
               wd(i, j, k, ivy) = wd(i, j, k, ivy) + leftd(ivy)
               wd(i, j, k, ivx) = wd(i, j, k, ivx) + leftd(ivx)
               wd(i, j, k, irho) = wd(i, j, k, irho) + leftd(irho)
+              call popreal8array(du1, nw)
+              call popreal8array(du2, nw)
+              call popreal8array(du3, nw)
+              call popreal8array(left, nw)
+              call popreal8array(right, nw)
               call leftrightstate_fast_b(du1, du1d, du2, du2d, du3, du3d&
 &                                  , rotmatrixi, left, leftd, right, &
 &                                  rightd)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+              call popcontrol1b(branch)
               if (branch .eq. 0) then
                 wd(i+2, j, k, itu1) = wd(i+2, j, k, itu1) + du3d(itu1)
                 wd(i+1, j, k, itu1) = wd(i+1, j, k, itu1) - du3d(itu1)
@@ -6484,11 +6620,9 @@ branch = myIntStack(myIntPtr)
         du3(ivx) = rot(1, 1)*dvx + rot(1, 2)*dvy + rot(1, 3)*dvz
         du3(ivy) = rot(2, 1)*dvx + rot(2, 2)*dvy + rot(2, 3)*dvz
         du3(ivz) = rot(3, 1)*dvx + rot(3, 2)*dvy + rot(3, 3)*dvz
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+        call pushcontrol1b(0)
       else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+        call pushcontrol1b(1)
       end if
 ! determine the limiter used.
       select case  (limused) 
@@ -6501,103 +6635,102 @@ myIntPtr = myIntPtr + 1
         do l=1,nwint
           if (du2(l) .ge. 0.) then
             x1 = du2(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             x1 = -du2(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (x1 .lt. epslim) then
+            call pushreal8(max2)
             max2 = epslim
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(max2)
             max2 = x1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
 ! compute the limiter argument rl1, rl2, rr1 and rr2.
 ! note the cut off to 0.0.
+          call pushreal8(tmp)
           tmp = one/sign(max2, du2(l))
           if (du1(l) .ge. 0.) then
             x3 = du1(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             x3 = -du1(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (x3 .lt. epslim) then
+            call pushreal8(max4)
             max4 = epslim
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(max4)
             max4 = x3
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           y1 = du2(l)/sign(max4, du1(l))
           if (zero .lt. y1) then
+            call pushreal8(rl1)
             rl1 = y1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(rl1)
             rl1 = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (zero .lt. du1(l)*tmp) then
+            call pushreal8(rl2)
             rl2 = du1(l)*tmp
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(rl2)
             rl2 = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (zero .lt. du3(l)*tmp) then
+            call pushreal8(rr1)
             rr1 = du3(l)*tmp
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(rr1)
             rr1 = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (du3(l) .ge. 0.) then
             x4 = du3(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             x4 = -du3(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (x4 .lt. epslim) then
+            call pushreal8(max5)
             max5 = epslim
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(max5)
             max5 = x4
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           y2 = du2(l)/sign(max5, du3(l))
           if (zero .lt. y2) then
+            call pushreal8(rr2)
             rr2 = y2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(rr2)
             rr2 = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
 ! compute the corresponding limiter values.
+          call pushreal8(rl1)
           rl1 = rl1*(rl1+one)/(rl1*rl1+one)
+          call pushreal8(rl2)
           rl2 = rl2*(rl2+one)/(rl2*rl2+one)
+          call pushreal8(rr1)
           rr1 = rr1*(rr1+one)/(rr1*rr1+one)
+          call pushreal8(rr2)
           rr2 = rr2*(rr2+one)/(rr2*rr2+one)
 ! compute the nonlinear corrections to the first order
 ! scheme.
@@ -6610,134 +6743,121 @@ myIntPtr = myIntPtr + 1
         do l=1,nwint
           if (du2(l) .ge. 0.) then
             x2 = du2(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             x2 = -du2(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (x2 .lt. epslim) then
+            call pushreal8(max3)
             max3 = epslim
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(max3)
             max3 = x2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
 ! compute the limiter argument rl1, rl2, rr1 and rr2.
 ! note the cut off to 0.0.
+          call pushreal8(tmp)
           tmp = one/sign(max3, du2(l))
           if (du1(l) .ge. 0.) then
             x5 = du1(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             x5 = -du1(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (x5 .lt. epslim) then
+            call pushreal8(max6)
             max6 = epslim
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(max6)
             max6 = x5
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           y3 = du2(l)/sign(max6, du1(l))
           if (zero .lt. y3) then
+            call pushreal8(rl1)
             rl1 = y3
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(rl1)
             rl1 = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (zero .lt. du1(l)*tmp) then
+            call pushreal8(rl2)
             rl2 = du1(l)*tmp
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(rl2)
             rl2 = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (zero .lt. du3(l)*tmp) then
+            call pushreal8(rr1)
             rr1 = du3(l)*tmp
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(rr1)
             rr1 = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (du3(l) .ge. 0.) then
             x6 = du3(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             x6 = -du3(l)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (x6 .lt. epslim) then
+            call pushreal8(max7)
             max7 = epslim
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(max7)
             max7 = x6
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           y4 = du2(l)/sign(max7, du3(l))
           if (zero .lt. y4) then
+            call pushreal8(rr2)
             rr2 = y4
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
+            call pushreal8(rr2)
             rr2 = zero
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (one .gt. factminmod*rl1) then
             rl1 = factminmod*rl1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             rl1 = one
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (one .gt. factminmod*rl2) then
             rl2 = factminmod*rl2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             rl2 = one
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (one .gt. factminmod*rr1) then
             rr1 = factminmod*rr1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             rr1 = one
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (one .gt. factminmod*rr2) then
             rr2 = factminmod*rr2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             rr2 = one
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
         end do
         call pushcontrol2b(3)
@@ -6748,11 +6868,9 @@ myIntPtr = myIntPtr + 1
 ! turbulent transport equations, set the correction for the
 ! turbulent kinetic energy to 0.
       if (firstorderk) then
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+        call pushcontrol1b(0)
       else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+        call pushcontrol1b(1)
       end if
 ! for rotational periodic problems transform the velocity
 ! differences back to cartesian again. note that now the
@@ -6789,8 +6907,7 @@ myIntPtr = myIntPtr + 1
         leftd(ivy) = leftd(ivy) + dvyd
         leftd(ivx) = leftd(ivx) + dvxd
       end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+      call popcontrol1b(branch)
       if (branch .eq. 0) then
         rightd(itu1) = 0.0_8
         leftd(itu1) = 0.0_8
@@ -6817,91 +6934,100 @@ branch = myIntStack(myIntPtr)
           du1d(l) = du1d(l) + omk*rl1*leftd(l)
           rl2d = opk*du2(l)*leftd(l)
           leftd(l) = 0.0_8
+          call popreal8(rr2)
           tempd2 = rr2d/(one+rr2**2)
           rr2d = (2*rr2-rr2**2*(one+rr2)*2/(one+rr2**2)+one)*tempd2
+          call popreal8(rr1)
           tempd3 = rr1d/(one+rr1**2)
           rr1d = (2*rr1-rr1**2*(one+rr1)*2/(one+rr1**2)+one)*tempd3
+          call popreal8(rl2)
           tempd4 = rl2d/(one+rl2**2)
           rl2d = (2*rl2-rl2**2*(one+rl2)*2/(one+rl2**2)+one)*tempd4
+          call popreal8(rl1)
           tempd5 = rl1d/(one+rl1**2)
           rl1d = (2*rl1-rl1**2*(one+rl1)*2/(one+rl1**2)+one)*tempd5
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(rr2)
             y2d = rr2d
           else
+            call popreal8(rr2)
             y2d = 0.0_8
           end if
           temp1 = sign(max5, du3(l))
           tempd1 = -(du2(l)*y2d/temp1**2)
           du2d(l) = du2d(l) + y2d/temp1
           max5d = sign(1.d0, max5*du3(l))*tempd1
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(max5)
             x4d = 0.0_8
           else
+            call popreal8(max5)
             x4d = max5d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             du3d(l) = du3d(l) + x4d
           else
             du3d(l) = du3d(l) - x4d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(rr1)
             du3d(l) = du3d(l) + tmp*rr1d
             tmpd = du3(l)*rr1d
           else
+            call popreal8(rr1)
             tmpd = 0.0_8
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(rl2)
             du1d(l) = du1d(l) + tmp*rl2d
             tmpd = tmpd + du1(l)*rl2d
           else
+            call popreal8(rl2)
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(rl1)
             y1d = rl1d
           else
+            call popreal8(rl1)
             y1d = 0.0_8
           end if
           temp0 = sign(max4, du1(l))
           tempd0 = -(du2(l)*y1d/temp0**2)
           du2d(l) = du2d(l) + y1d/temp0
           max4d = sign(1.d0, max4*du1(l))*tempd0
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(max4)
             x3d = 0.0_8
           else
+            call popreal8(max4)
             x3d = max4d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             du1d(l) = du1d(l) + x3d
           else
             du1d(l) = du1d(l) - x3d
           end if
+          call popreal8(tmp)
           temp = sign(max2, du2(l))
           tempd = -(one*tmpd/temp**2)
           max2d = sign(1.d0, max2*du2(l))*tempd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(max2)
             x1d = 0.0_8
           else
+            call popreal8(max2)
             x1d = max2d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             du2d(l) = du2d(l) + x1d
           else
@@ -6919,111 +7045,112 @@ branch = myIntStack(myIntPtr)
           du1d(l) = du1d(l) + omk*rl1*leftd(l)
           rl2d = opk*du2(l)*leftd(l)
           leftd(l) = 0.0_8
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             rr2d = factminmod*rr2d
           else
             rr2d = 0.0_8
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             rr1d = factminmod*rr1d
           else
             rr1d = 0.0_8
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             rl2d = factminmod*rl2d
           else
             rl2d = 0.0_8
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             rl1d = factminmod*rl1d
           else
             rl1d = 0.0_8
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(rr2)
             y4d = rr2d
           else
+            call popreal8(rr2)
             y4d = 0.0_8
           end if
           temp4 = sign(max7, du3(l))
           tempd8 = -(du2(l)*y4d/temp4**2)
           du2d(l) = du2d(l) + y4d/temp4
           max7d = sign(1.d0, max7*du3(l))*tempd8
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(max7)
             x6d = 0.0_8
           else
+            call popreal8(max7)
             x6d = max7d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             du3d(l) = du3d(l) + x6d
           else
             du3d(l) = du3d(l) - x6d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(rr1)
             du3d(l) = du3d(l) + tmp*rr1d
             tmpd = du3(l)*rr1d
           else
+            call popreal8(rr1)
             tmpd = 0.0_8
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(rl2)
             du1d(l) = du1d(l) + tmp*rl2d
             tmpd = tmpd + du1(l)*rl2d
           else
+            call popreal8(rl2)
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(rl1)
             y3d = rl1d
           else
+            call popreal8(rl1)
             y3d = 0.0_8
           end if
           temp3 = sign(max6, du1(l))
           tempd7 = -(du2(l)*y3d/temp3**2)
           du2d(l) = du2d(l) + y3d/temp3
           max6d = sign(1.d0, max6*du1(l))*tempd7
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(max6)
             x5d = 0.0_8
           else
+            call popreal8(max6)
             x5d = max6d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             du1d(l) = du1d(l) + x5d
           else
             du1d(l) = du1d(l) - x5d
           end if
+          call popreal8(tmp)
           temp2 = sign(max3, du2(l))
           tempd6 = -(one*tmpd/temp2**2)
           max3d = sign(1.d0, max3*du2(l))*tempd6
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(max3)
             x2d = 0.0_8
           else
+            call popreal8(max3)
             x2d = max3d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             du2d(l) = du2d(l) + x2d
           else
@@ -7031,8 +7158,7 @@ branch = myIntStack(myIntPtr)
           end if
         end do
       end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+      call popcontrol1b(branch)
       if (branch .eq. 0) then
         dvxd = rot(3, 1)*du3d(ivz)
         dvyd = rot(3, 2)*du3d(ivz)
@@ -7456,11 +7582,9 @@ branch = myIntStack(myIntPtr)
 ! compute the average turbulent energy per unit mass
 ! using roe averages.
             kavg = tmp*(z1l*left(itu1)+z1r*right(itu1))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
 ! set the difference of the turbulent kinetic energy
 ! per unit volume and the averaged kinetic energy per
 ! unit mass to zero.
@@ -7468,8 +7592,10 @@ myIntPtr = myIntPtr + 1
             kavg = 0.0
           end if
 ! compute the total energy of the left and right state.
+          call pushreal8(etl)
           call etot(left(irho), left(ivx), left(ivy), left(ivz), left(&
 &             irhoe), ktmp(1), etl, correctfork)
+          call pushreal8(etr)
           call etot(right(irho), right(ivx), right(ivy), right(ivz), &
 &             right(irhoe), ktmp(2), etr, correctfork)
 ! compute the difference of the conservative mean
@@ -7503,12 +7629,10 @@ myIntPtr = myIntPtr + 1
           alphaavg = half*(uavg**2+vavg**2+wavg**2)
           if (gm1*(havg-alphaavg) - gm53*kavg .ge. 0.) then
             a2avg = gm1*(havg-alphaavg) - gm53*kavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             a2avg = -(gm1*(havg-alphaavg)-gm53*kavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           aavg = sqrt(a2avg)
           unavg = uavg*sx + vavg*sy + wavg*sz
@@ -7518,33 +7642,27 @@ myIntPtr = myIntPtr + 1
 ! normal velocity of the boundary.
           if (por .eq. boundflux) then
             unavg = rface
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           end if
           x1 = (left(ivx)-right(ivx))*sx + (left(ivy)-right(ivy))*sy + (&
 &           left(ivz)-right(ivz))*sz
           if (x1 .ge. 0.) then
             abs1 = x1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           else
             abs1 = -x1
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           end if
           x2 = sqrt(gammaface*left(irhoe)/left(irho)) - sqrt(gammaface*&
 &           right(irhoe)/right(irho))
           if (x2 .ge. 0.) then
             abs2 = x2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             abs2 = -x2
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
 ! compute the coefficient eta for the entropy correction.
 ! at the moment a 1d entropy correction is used, which
@@ -7559,56 +7677,47 @@ myIntPtr = myIntPtr + 1
           eta = half*(abs1+abs2)
           if (unavg - rface + aavg .ge. 0.) then
             lam1 = unavg - rface + aavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             lam1 = -(unavg-rface+aavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (unavg - rface - aavg .ge. 0.) then
             lam2 = unavg - rface - aavg
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             lam2 = -(unavg-rface-aavg)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (unavg - rface .ge. 0.) then
             lam3 = unavg - rface
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
             lam3 = -(unavg-rface)
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
 ! apply the entropy correction to the eigenvalues.
           tmp = two*eta
           if (lam1 .lt. tmp) then
+            call pushreal8(lam1)
             lam1 = eta + fourth*lam1*lam1/eta
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (lam2 .lt. tmp) then
+            call pushreal8(lam2)
             lam2 = eta + fourth*lam2*lam2/eta
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
           if (lam3 .lt. tmp) then
+            call pushreal8(lam3)
             lam3 = eta + fourth*lam3*lam3/eta
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
           end if
 ! multiply the eigenvalues by the area to obtain
 ! the correct values for the dissipation term.
@@ -7668,38 +7777,36 @@ myIntPtr = myIntPtr + 1
           lam3d = area*lam3d
           lam2d = area*lam2d
           lam1d = area*lam1d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(lam3)
             tempd12 = fourth*lam3d/eta
             etad = lam3d - lam3**2*tempd12/eta
             lam3d = 2*lam3*tempd12
           else
             etad = 0.0_8
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(lam2)
             tempd11 = fourth*lam2d/eta
             etad = etad + lam2d - lam2**2*tempd11/eta
             lam2d = 2*lam2*tempd11
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
+            call popreal8(lam1)
             tempd10 = fourth*lam1d/eta
             etad = etad + lam1d - lam1**2*tempd10/eta
             lam1d = 2*lam1*tempd10
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             unavgd = unavgd + lam3d
           else
             unavgd = unavgd - lam3d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             unavgd = unavgd + lam2d
             aavgd = -lam2d
@@ -7707,8 +7814,7 @@ branch = myIntStack(myIntPtr)
             aavgd = lam2d
             unavgd = unavgd - lam2d
           end if
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             unavgd = unavgd + lam1d
             aavgd = aavgd + lam1d
@@ -7718,8 +7824,7 @@ branch = myIntStack(myIntPtr)
           end if
           abs1d = half*etad
           abs2d = half*etad
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             x2d = abs2d
           else
@@ -7743,8 +7848,7 @@ branch = myIntStack(myIntPtr)
           leftd(irho) = leftd(irho) - temp1*tempd8
           rightd(irhoe) = rightd(irhoe) + tempd9
           rightd(irho) = rightd(irho) - temp2*tempd9
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             x1d = -abs1d
           else
@@ -7756,8 +7860,7 @@ branch = myIntStack(myIntPtr)
           rightd(ivy) = rightd(ivy) - sy*x1d
           leftd(ivz) = leftd(ivz) + sz*x1d
           rightd(ivz) = rightd(ivz) - sz*x1d
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .ne. 0) unavgd = 0.0_8
           aavgd = aavgd - one*ovaavgd/aavg**2
           if (a2avg .eq. 0.0_8) then
@@ -7768,8 +7871,7 @@ branch = myIntStack(myIntPtr)
           uavgd = uavgd + sx*unavgd
           vavgd = vavgd + sy*unavgd
           wavgd = wavgd + sz*unavgd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) then
             havgd = havgd + gm1*a2avgd
             alphaavgd = alphaavgd - gm1*a2avgd
@@ -7823,17 +7925,18 @@ branch = myIntStack(myIntPtr)
           leftd(ivx) = leftd(ivx) - left(irho)*drud
           rightd(irho) = rightd(irho) + drd
           leftd(irho) = leftd(irho) - drd
+          call popreal8(etr)
           ktmpd = 0.0_8
           call etot_fast_b(right(irho), rightd(irho), right(ivx), rightd&
 &                    (ivx), right(ivy), rightd(ivy), right(ivz), rightd(&
 &                    ivz), right(irhoe), rightd(irhoe), ktmp(2), ktmpd(2&
 &                    ), etr, etrd, correctfork)
+          call popreal8(etl)
           call etot_fast_b(left(irho), leftd(irho), left(ivx), leftd(ivx&
 &                    ), left(ivy), leftd(ivy), left(ivz), leftd(ivz), &
 &                    left(irhoe), leftd(irhoe), ktmp(1), ktmpd(1), etl, &
 &                    etld, correctfork)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .ne. 0) then
             tempd0 = tmp*kavgd
             tmpd = tmpd + (z1l*left(itu1)+z1r*right(itu1))*kavgd
@@ -8231,6 +8334,86 @@ branch = myIntStack(myIntPtr)
       vyd = 0.0_8
       vzd = 0.0_8
     else
+      call pushreal8(wxy)
+      call pushreal8(ssx)
+      call pushreal8(wxz)
+      call pushreal8(ssy)
+      call pushreal8(ssz)
+      call pushreal8(u_x)
+      call pushreal8(u_y)
+      call pushreal8(tauzz)
+      call pushreal8(u_z)
+      call pushinteger4(i)
+      call pushinteger4(j)
+      call pushreal8(tauxzs)
+      call pushreal8(w_x)
+      call pushreal8(w_y)
+      call pushreal8(w_z)
+      call pushreal8(wyx)
+      call pushreal8(wyz)
+      call pushreal8(tauxx)
+      call pushreal8(den)
+      call pushreal8(tauxy)
+      call pushreal8(tauxz)
+      call pushreal8(tauzzs)
+      call pushreal8(tauyys)
+      call pushreal8(q_x)
+      call pushreal8(tauxxs)
+      call pushreal8(q_y)
+      call pushreal8(q_z)
+      call pushreal8(wzx)
+      call pushreal8(wzy)
+      call pushreal8(v_x)
+      call pushreal8(v_y)
+      call pushreal8(v_z)
+      call pushreal8(tauyy)
+      call pushreal8(tauyz)
+      call pushreal8(mue)
+      call pushreal8(ss)
+      call pushreal8(tauyzs)
+      call pushreal8(fact)
+      call pushreal8(por)
+      call pushreal8(tauxys)
+      call pushreal8(wxy)
+      call pushreal8(ssx)
+      call pushreal8(wxz)
+      call pushreal8(ssy)
+      call pushreal8(ssz)
+      call pushreal8(u_x)
+      call pushreal8(u_y)
+      call pushreal8(tauzz)
+      call pushreal8(u_z)
+      call pushinteger4(i)
+      call pushinteger4(j)
+      call pushreal8(tauxzs)
+      call pushreal8(w_x)
+      call pushreal8(w_y)
+      call pushreal8(w_z)
+      call pushreal8(wyx)
+      call pushreal8(wyz)
+      call pushreal8(tauxx)
+      call pushreal8(den)
+      call pushreal8(tauxy)
+      call pushreal8(tauxz)
+      call pushreal8(tauzzs)
+      call pushreal8(tauyys)
+      call pushreal8(q_x)
+      call pushreal8(tauxxs)
+      call pushreal8(q_y)
+      call pushreal8(q_z)
+      call pushreal8(wzx)
+      call pushreal8(wzy)
+      call pushreal8(v_x)
+      call pushreal8(v_y)
+      call pushreal8(v_z)
+      call pushreal8(tauyy)
+      call pushreal8(tauyz)
+      call pushreal8(mue)
+      call pushreal8(ss)
+      call pushreal8(tauyzs)
+      call pushreal8(fact)
+      call pushreal8(por)
+      call pushreal8(tauxys)
       revd = 0.0_8
       wxd = 0.0_8
       wyd = 0.0_8
@@ -8278,11 +8461,9 @@ branch = myIntStack(myIntPtr)
         mul = por*(rlv(i, j, k)+rlv(i+1, j, k))
         if (eddymodel) then
           mue = por*(rev(i, j, k)+rev(i+1, j, k))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         mut = mul + mue
         gm1 = half*(gamma(i, j, k)+gamma(i+1, j, k)) - one
@@ -8388,11 +8569,9 @@ myIntPtr = myIntPtr + 1
 &           v_z*v_z + w_x*w_x + w_y*w_y + w_z*w_z)
           if (den .lt. xminn) then
             den = xminn
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
             den = den
           end if
 ! compute factor that will multiply all tensor components.
@@ -8421,8 +8600,7 @@ myIntPtr = myIntPtr + 1
           tauxy = mut*tauxys - exy
           tauxz = mut*tauxzs - exz
           tauyz = mut*tauyzs - eyz
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
 ! just apply the total viscosity to the stress tensor
           tauxx = mut*tauxxs
@@ -8431,8 +8609,7 @@ myIntPtr = myIntPtr + 1
           tauxy = mut*tauxys
           tauxz = mut*tauxzs
           tauyz = mut*tauyzs
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
 ! compute the average velocities for the face. remember that
 ! the velocities are stored and not the momentum.
@@ -8472,8 +8649,7 @@ myIntPtr = myIntPtr + 1
         wd(i+1, j, k, ivy) = wd(i+1, j, k, ivy) + half*vbard
         wd(i, j, k, ivx) = wd(i, j, k, ivx) + half*ubard
         wd(i+1, j, k, ivx) = wd(i+1, j, k, ivx) + half*ubard
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           exzd = -tauxzd
           exyd = -tauxyd
@@ -8518,8 +8694,7 @@ branch = myIntStack(myIntPtr)
           tempd67 = ccr1*factd/den
           mued = mued + tempd67
           dend = -(mue*tempd67/den)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) dend = 0.0_8
           if (u_x**2 + u_y**2 + u_z**2 + v_x**2 + v_y**2 + v_z**2 + w_x&
 &             **2 + w_y**2 + w_z**2 .eq. 0.0_8) then
@@ -8657,8 +8832,7 @@ branch = myIntStack(myIntPtr)
         uxd(i, j, k) = uxd(i, j, k) + tempd59
         muld = mutd + factlamheat*heatcoefd
         mued = mued + mutd + factturbheat*heatcoefd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           revd(i, j, k) = revd(i, j, k) + por*mued
           revd(i+1, j, k) = revd(i+1, j, k) + por*mued
@@ -8667,6 +8841,46 @@ branch = myIntStack(myIntPtr)
         rlvd(i, j, k) = rlvd(i, j, k) + por*muld
         rlvd(i+1, j, k) = rlvd(i+1, j, k) + por*muld
       end do
+      call popreal8(tauxys)
+      call popreal8(por)
+      call popreal8(fact)
+      call popreal8(tauyzs)
+      call popreal8(ss)
+      call popreal8(mue)
+      call popreal8(tauyz)
+      call popreal8(tauyy)
+      call popreal8(v_z)
+      call popreal8(v_y)
+      call popreal8(v_x)
+      call popreal8(wzy)
+      call popreal8(wzx)
+      call popreal8(q_z)
+      call popreal8(q_y)
+      call popreal8(tauxxs)
+      call popreal8(q_x)
+      call popreal8(tauyys)
+      call popreal8(tauzzs)
+      call popreal8(tauxz)
+      call popreal8(tauxy)
+      call popreal8(den)
+      call popreal8(tauxx)
+      call popreal8(wyz)
+      call popreal8(wyx)
+      call popreal8(w_z)
+      call popreal8(w_y)
+      call popreal8(w_x)
+      call popreal8(tauxzs)
+      call popinteger4(j)
+      call popinteger4(i)
+      call popreal8(u_z)
+      call popreal8(tauzz)
+      call popreal8(u_y)
+      call popreal8(u_x)
+      call popreal8(ssz)
+      call popreal8(ssy)
+      call popreal8(wxz)
+      call popreal8(ssx)
+      call popreal8(wxy)
       mued = 0.0_8
       mue = zero
       mued = 0.0_8
@@ -8686,11 +8900,9 @@ branch = myIntStack(myIntPtr)
         mul = por*(rlv(i, j, k)+rlv(i, j+1, k))
         if (eddymodel) then
           mue = por*(rev(i, j, k)+rev(i, j+1, k))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         mut = mul + mue
         gm1 = half*(gamma(i, j, k)+gamma(i, j+1, k)) - one
@@ -8796,11 +9008,9 @@ myIntPtr = myIntPtr + 1
 &           v_z*v_z + w_x*w_x + w_y*w_y + w_z*w_z)
           if (den .lt. xminn) then
             den = xminn
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
             den = den
           end if
 ! compute factor that will multiply all tensor components.
@@ -8829,8 +9039,7 @@ myIntPtr = myIntPtr + 1
           tauxy = mut*tauxys - exy
           tauxz = mut*tauxzs - exz
           tauyz = mut*tauyzs - eyz
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
 ! just apply the total viscosity to the stress tensor
           tauxx = mut*tauxxs
@@ -8839,8 +9048,7 @@ myIntPtr = myIntPtr + 1
           tauxy = mut*tauxys
           tauxz = mut*tauxzs
           tauyz = mut*tauyzs
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
 ! compute the average velocities for the face. remember that
 ! the velocities are stored and not the momentum.
@@ -8880,8 +9088,7 @@ myIntPtr = myIntPtr + 1
         wd(i, j+1, k, ivy) = wd(i, j+1, k, ivy) + half*vbard
         wd(i, j, k, ivx) = wd(i, j, k, ivx) + half*ubard
         wd(i, j+1, k, ivx) = wd(i, j+1, k, ivx) + half*ubard
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           exzd = -tauxzd
           exyd = -tauxyd
@@ -8926,8 +9133,7 @@ branch = myIntStack(myIntPtr)
           tempd43 = ccr1*factd/den
           mued = mued + tempd43
           dend = -(mue*tempd43/den)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) dend = 0.0_8
           if (u_x**2 + u_y**2 + u_z**2 + v_x**2 + v_y**2 + v_z**2 + w_x&
 &             **2 + w_y**2 + w_z**2 .eq. 0.0_8) then
@@ -9065,8 +9271,7 @@ branch = myIntStack(myIntPtr)
         uxd(i, j, k) = uxd(i, j, k) + tempd35
         muld = mutd + factlamheat*heatcoefd
         mued = mued + mutd + factturbheat*heatcoefd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           revd(i, j, k) = revd(i, j, k) + por*mued
           revd(i, j+1, k) = revd(i, j+1, k) + por*mued
@@ -9075,6 +9280,46 @@ branch = myIntStack(myIntPtr)
         rlvd(i, j, k) = rlvd(i, j, k) + por*muld
         rlvd(i, j+1, k) = rlvd(i, j+1, k) + por*muld
       end do
+      call popreal8(tauxys)
+      call popreal8(por)
+      call popreal8(fact)
+      call popreal8(tauyzs)
+      call popreal8(ss)
+      call popreal8(mue)
+      call popreal8(tauyz)
+      call popreal8(tauyy)
+      call popreal8(v_z)
+      call popreal8(v_y)
+      call popreal8(v_x)
+      call popreal8(wzy)
+      call popreal8(wzx)
+      call popreal8(q_z)
+      call popreal8(q_y)
+      call popreal8(tauxxs)
+      call popreal8(q_x)
+      call popreal8(tauyys)
+      call popreal8(tauzzs)
+      call popreal8(tauxz)
+      call popreal8(tauxy)
+      call popreal8(den)
+      call popreal8(tauxx)
+      call popreal8(wyz)
+      call popreal8(wyx)
+      call popreal8(w_z)
+      call popreal8(w_y)
+      call popreal8(w_x)
+      call popreal8(tauxzs)
+      call popinteger4(j)
+      call popinteger4(i)
+      call popreal8(u_z)
+      call popreal8(tauzz)
+      call popreal8(u_y)
+      call popreal8(u_x)
+      call popreal8(ssz)
+      call popreal8(ssy)
+      call popreal8(wxz)
+      call popreal8(ssx)
+      call popreal8(wxy)
       mued = 0.0_8
 !
 !         viscous fluxes in the k-direction.
@@ -9097,11 +9342,9 @@ branch = myIntStack(myIntPtr)
         mul = por*(rlv(i, j, k)+rlv(i, j, k+1))
         if (eddymodel) then
           mue = por*(rev(i, j, k)+rev(i, j, k+1))
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
         mut = mul + mue
         gm1 = half*(gamma(i, j, k)+gamma(i, j, k+1)) - one
@@ -9207,11 +9450,9 @@ myIntPtr = myIntPtr + 1
 &           v_z*v_z + w_x*w_x + w_y*w_y + w_z*w_z)
           if (den .lt. xminn) then
             den = xminn
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+            call pushcontrol1b(0)
           else
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+            call pushcontrol1b(1)
             den = den
           end if
 ! compute factor that will multiply all tensor components.
@@ -9240,8 +9481,7 @@ myIntPtr = myIntPtr + 1
           tauxy = mut*tauxys - exy
           tauxz = mut*tauxzs - exz
           tauyz = mut*tauyzs - eyz
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 0
+          call pushcontrol1b(0)
         else
 ! just apply the total viscosity to the stress tensor
           tauxx = mut*tauxxs
@@ -9250,8 +9490,7 @@ myIntPtr = myIntPtr + 1
           tauxy = mut*tauxys
           tauxz = mut*tauxzs
           tauyz = mut*tauyzs
-myIntPtr = myIntPtr + 1
- myIntStack(myIntPtr) = 1
+          call pushcontrol1b(1)
         end if
 ! compute the average velocities for the face. remember that
 ! the velocities are stored and not the momentum.
@@ -9291,8 +9530,7 @@ myIntPtr = myIntPtr + 1
         wd(i, j, k+1, ivy) = wd(i, j, k+1, ivy) + half*vbard
         wd(i, j, k, ivx) = wd(i, j, k, ivx) + half*ubard
         wd(i, j, k+1, ivx) = wd(i, j, k+1, ivx) + half*ubard
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           exzd = -tauxzd
           exyd = -tauxyd
@@ -9337,8 +9575,7 @@ branch = myIntStack(myIntPtr)
           tempd19 = ccr1*factd/den
           mued = mued + tempd19
           dend = -(mue*tempd19/den)
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+          call popcontrol1b(branch)
           if (branch .eq. 0) dend = 0.0_8
           if (u_x**2 + u_y**2 + u_z**2 + v_x**2 + v_y**2 + v_z**2 + w_x&
 &             **2 + w_y**2 + w_z**2 .eq. 0.0_8) then
@@ -9476,8 +9713,7 @@ branch = myIntStack(myIntPtr)
         uxd(i, j, k) = uxd(i, j, k) + tempd11
         muld = mutd + factlamheat*heatcoefd
         mued = mued + mutd + factturbheat*heatcoefd
-branch = myIntStack(myIntPtr)
- myIntPtr = myIntPtr - 1
+        call popcontrol1b(branch)
         if (branch .eq. 0) then
           revd(i, j, k) = revd(i, j, k) + por*mued
           revd(i, j, k+1) = revd(i, j, k+1) + por*mued

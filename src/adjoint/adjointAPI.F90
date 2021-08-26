@@ -219,7 +219,9 @@ contains
     use masterRoutines, only : master_state_b, master_b
     use blockpointers
     use inputtimespectral
-    use adjointutils
+    use adjointUtils, only : allocDerivativeValues, zeroADSeeds
+    use adjointvars, only : derivVarsAllocated
+    
     implicit none
 
     ! Input Variables
@@ -263,7 +265,10 @@ contains
     ! of the fact that only wbar needs to be zeroed since all other
     ! required seeds are zeroed in the individual fast routines. This is
     ! slightly unsafe, but it necessary for speed.
-     do nn=1,nDom
+    if (.not. derivVarsAllocated) then
+      call allocDerivativeValues(level)
+   end if
+    do nn=1,nDom
        do sps=1,nTimeIntervalsSpectral
           call zeroADSeeds(nn,level, sps)
        end do
@@ -836,8 +841,8 @@ contains
        ! Determine the maximum time using MPI reduce
        ! with operation mpi_max.
 
-       ! call mpi_reduce(timeAdjLocal, timeAdj, 1, adflow_real, &
-       !      mpi_max, 0, ADFLOW_COMM_WORLD, ierr)
+       call mpi_reduce(timeAdjLocal, timeAdj, 1, adflow_real, &
+            mpi_max, 0, ADFLOW_COMM_WORLD, ierr)
 
        call MatMult(dRdWT, psi_like1, adjointRes, ierr)
        call EChk(ierr,__FILE__,__LINE__)
