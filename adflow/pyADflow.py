@@ -4738,6 +4738,7 @@ class ADFLOW(AeroSolver):
                                 self.adflow.adjointvars.ndesignextra, self.getAdjointStateSize(), famLists,
                                                                 BCArrays,  BCVarNames, patchLoc, nBCVars,
                                                                 actArray,  actVarNames, actFamList)
+        
         BCDataBar = self._convertFortBCDataToBCData(BCArraysBar, BCVarNames, BCDataArrSizes, patchLoc, nBCVars, groups)
 
         bc_var_bar = self.getBCVarBarFromBCDataBar( BCDataBar, self.curAP.getBCVars())
@@ -4752,6 +4753,7 @@ class ADFLOW(AeroSolver):
 
         # Process xVbar back to the xS or xDV (geometric variables) if necessary
         if xDvDeriv or xSDeriv:
+
             if self.mesh is not None:
 
                 self.mesh.warpDeriv(xvbar)

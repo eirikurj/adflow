@@ -176,15 +176,14 @@ def assert_fwd_mode_allclose(handler, CFDSolver, ap, seed=314, **kwargs):
 
     handler.root_print("-> Derivatives with respect to extra variables")
 
-    for aeroDV in ap.DVs.values():
-        key = aeroDV.key
+    for key, aeroDV in ap.DVs.items():
         handler.root_print("  -> %s" % key)
         xDvDot = {key: 1.0}
 
         resDot, funcsDot, fDot = CFDSolver.computeJacobianVectorProductFwd(
             xDvDot=xDvDot, residualDeriv=True, funcDeriv=True, fDeriv=True
         )
-
+        key = aeroDV.key
         handler.root_print("||dR/d%s||" % key)
         handler.par_add_norm("||dR/d%s||" % key, resDot, rtol=rtol, atol=atol)
 
