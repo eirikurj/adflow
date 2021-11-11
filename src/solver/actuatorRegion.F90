@@ -699,7 +699,7 @@ contains
              else if (trim(varName) == "Torque") then
                 dataVecd(iVar) =  actuatorRegionsd(iRegion)%torque
              else if (trim(varName) == "Heat") then
-                dataVecd(iVar) = actuatorRegions(iRegion)%heat
+                dataVecd(iVar) = actuatorRegionsd(iRegion)%heat
              end if
             
           end if famInclude2

@@ -197,13 +197,13 @@ class TestSolveOverset(reg_test_classes.RegTest):
         # Setup aeroproblem
 
         self.ap.setBCVar("Pressure", 79326.7, "downstream")
-        self.ap.addDV("Pressure", family="downstream")
+        self.ap.addDV("Pressure", familyGroup="downstream")
 
         self.ap.setBCVar("PressureStagnation", 100000.0, "upstream")
-        self.ap.addDV("PressureStagnation", family="upstream")
+        self.ap.addDV("PressureStagnation", familyGroup="upstream")
 
         self.ap.setBCVar("TemperatureStagnation", 500.0, "upstream")
-        self.ap.addDV("TemperatureStagnation", family="upstream")
+        self.ap.addDV("TemperatureStagnation", familyGroup="upstream")
 
         # Create the solver
         self.CFDSolver = ADFLOW(options=options, debug=False)

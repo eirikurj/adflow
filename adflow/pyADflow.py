@@ -3148,6 +3148,8 @@ class ADFLOW(AeroSolver):
             for var in bc_var_dict[fam]:
                 if isinstance(bc_var_dict[fam][var], float):
                     bc_var_dict[fam][var] = numpy.sum(bc_data.getBCArraysFlatData( var, familyGroup=fam))
+                    bc_var_dict[fam][var] = self.comm.allreduce(bc_var_dict[fam][var])                    
+                    
                 else:
                     bc_var_dict[fam][var] = bc_data.getBCArraysFlatData( var, familyGroup=fam)
 
@@ -4738,12 +4740,15 @@ class ADFLOW(AeroSolver):
                                 self.adflow.adjointvars.ndesignextra, self.getAdjointStateSize(), famLists,
                                                                 BCArrays,  BCVarNames, patchLoc, nBCVars,
                                                                 actArray,  actVarNames, actFamList)
-        
         BCDataBar = self._convertFortBCDataToBCData(BCArraysBar, BCVarNames, BCDataArrSizes, patchLoc, nBCVars, groups)
-
         bc_var_bar = self.getBCVarBarFromBCDataBar( BCDataBar, self.curAP.getBCVars())
 
         actDataBar =  self._convertFortActuatorDataToActuatorData(actArrayBar, actVarNames, actFamList)
+        
+        for fam in actDataBar:
+            for var in actDataBar[fam]:
+                actDataBar[fam][var] = self.comm.allreduce(actDataBar[fam][var])
+        
         # Assemble the possible returns the user has requested:
         returns = []
         if wDeriv:
@@ -6221,13 +6226,13 @@ class ADFLOW(AeroSolver):
                 )
         else:
 
-            if zipFam not in self.families:
+            if zipFam not in self.familyGroups:
                 raise Error(
                     "Trying to create the zipper mesh, but '%s' is not a "
                     "family in the CGNS file or has not been added"
                     " as a combination of families" % zipFam
                 )
-            zipperFamList = self.families[zipFam]
+            zipperFamList = self.familyGroups[zipFam]
 
         self.adflow.zippermesh.createzippermesh(zipperFamList)
         self.zipperCreated = True

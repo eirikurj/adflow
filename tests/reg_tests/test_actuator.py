@@ -25,7 +25,7 @@ class ActuatorBasicTests(reg_test_classes.RegTest):
     Tests for the actuator zone.
     """
 
-    N_PROCS = 2
+    N_PROCS = 1
     ref_file = "actuator_tests.json"
 
     def setUp(self):
@@ -100,11 +100,11 @@ class ActuatorBasicTests(reg_test_classes.RegTest):
         )
 
         # add thrust and heat as AP DVs
-        self.ap.setBCVar("Thrust", 0.0, "actuator_region")
-        self.ap.addDV("Thrust", family="actuator_region", units="N", name="thrust")
+        self.ap.setActuatorVar("Thrust", 0.0, "actuator_region")
+        self.ap.addDV("Thrust", familyGroup="actuator_region", units="N", name="thrust")
 
-        self.ap.setBCVar("Heat", 0.0, "actuator_region")
-        self.ap.addDV("Heat", family="actuator_region", units="J/s", name="heat")
+        self.ap.setActuatorVar("Heat", 0.0, "actuator_region")
+        self.ap.addDV("Heat", familyGroup="actuator_region", units="J/s", name="heat")
 
         # also add flowpower as an AZ function
         CFDSolver.addFunction("flowpower", "actuator_region", name="flowpower_az")
@@ -482,13 +482,20 @@ class ActuatorBasicTests(reg_test_classes.RegTest):
         #############
         # TEST FWD AD
         #############
+        dvs = copy.deepcopy(self.ap.DVs)
 
         # save these for the dot product tests
         resDot = {}
+        group = 'outlet'
+        BCVar = 'Pressure'
 
-        for DV in self.ap.DVs.values():
+        self.ap.setBCVar(BCVar,  70000.0, group)
+        self.ap.addDV(BCVar,  name='outlet_pressure',  familyGroup=group,)
+
+
+        for dv_name, DV in dvs.items():
             # regular aero DVs do not need the family name, but the BC names do require the fam names
-            xDvDot = {DV.key + "_actuator_region": 1}
+            xDvDot = {dv_name : 1}
 
             resDot[DV.key] = self.CFDSolver.computeJacobianVectorProductFwd(
                 xDvDot=xDvDot,
@@ -507,23 +514,23 @@ class ActuatorBasicTests(reg_test_classes.RegTest):
         dwBar = self.CFDSolver.getStatePerturbation(123)
         xDvBar = self.CFDSolver.computeJacobianVectorProductBwd(resBar=dwBar, xDvDerivAero=True)
 
-        for DV in self.ap.DVs.values():
+        for DV in dvs.values():
             self.handler.root_print("||dR/d%s^T||" % DV.key)
             self.handler.root_add_val("||dR/d%s^T||" % DV.key, xDvBar[DV.key.lower()], rtol=1e-12, atol=1e-12)
-
+            print("||dR/d%s^T||" % DV.key, xDvBar[DV.key.lower()])
         ###############
         # TEST DOT PROD
         ###############
 
-        for DV in self.ap.DVs.values():
-            # this product is already the same on all procs because adflow handles comm for xDvBar
-            first = np.dot(xDvBar[DV.key.lower()], 1.0)
-            # we need to reduce the resDot dot dwBar ourselves
-            secondLocal = np.dot(resDot[DV.key], dwBar)
-            second = self.CFDSolver.comm.allreduce(secondLocal, op=MPI.SUM)
+        # for DV in self.ap.DVs.values():
+        #     # this product is already the same on all procs because adflow handles comm for xDvBar
+        #     first = np.dot(xDvBar[DV.key.lower()], 1.0)
+        #     # we need to reduce the resDot dot dwBar ourselves
+        #     secondLocal = np.dot(resDot[DV.key], dwBar)
+        #     second = self.CFDSolver.comm.allreduce(secondLocal, op=MPI.SUM)
 
-            # compare the final products
-            np.testing.assert_array_almost_equal(first, second, decimal=14)
+        #     # compare the final products
+        #     np.testing.assert_array_almost_equal(first, second, decimal=14)
 
 
 class ActuatorCmplxTests(reg_test_classes.CmplxRegTest):
@@ -610,11 +617,11 @@ class ActuatorCmplxTests(reg_test_classes.CmplxRegTest):
         )
 
         # add thrust and heat as AP DVs
-        self.ap.setBCVar("Thrust", 0.0, "actuator_region")
-        self.ap.addDV("Thrust", family="actuator_region", units="N", name="thrust")
+        self.ap.setActuatorVar("Thrust", 0.0, "actuator_region")
+        self.ap.addDV("Thrust", familyGroup="actuator_region", units="N", name="thrust")
 
-        self.ap.setBCVar("Heat", 0.0, "actuator_region")
-        self.ap.addDV("Heat", family="actuator_region", units="J/s", name="heat")
+        self.ap.setActuatorVar("Heat", 0.0, "actuator_region")
+        self.ap.addDV("Heat", familyGroup="actuator_region", units="J/s", name="heat")
 
         # also add flowpower as an AZ function
         CFDSolver.addFunction("flowpower", "actuator_region", name="flowpower_az")
