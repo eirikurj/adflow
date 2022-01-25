@@ -41,6 +41,7 @@ class RegTest(unittest.TestCase):
         # get all of the testing methods
         # all of the tests written in this framework must start with "test_"
         tests = [x for x in dir(self) if x.startswith("test_")]
+        print(f"training {tests}")
         for test in tests:
             test_func = getattr(self, test)
             test_func()
