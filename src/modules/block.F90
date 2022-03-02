@@ -579,6 +579,8 @@ module block
      real(kind=realType), dimension(:,:,:,:),   pointer :: scratch
 
 
+   !   real(kind=realType), dimension(:,:,:,:),   pointer :: work1, work2
+     
      ! Added by HDN
      ! Used for ALE. Only allocated on the finest mesh.
      ! Extra dim is used to store initial residuals

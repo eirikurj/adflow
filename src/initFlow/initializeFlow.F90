@@ -655,6 +655,7 @@ end subroutine infChangeCorrection
           flowDoms(nn,level,sps)%dw = zero
           flowDoms(nn,level,sps)%fw = zero
 
+          flowDoms(nn,level,sps)%scratch = zero
 
           ! Extra variables for ALE
           if (equationMode == unSteady .and. useALE) then

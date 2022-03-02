@@ -2563,6 +2563,9 @@ contains
     volWriteGC = .false.
     volWriteStatus = .false.
     volWriteIntermittency = .false.
+    
+    
+    volWriteWork = .false.
 
 
     ! Initialize nVarSpecified to 0. This serves as a test
@@ -2714,7 +2717,11 @@ contains
        case("intermittency")
           volWriteIntermittency = .true.
           nVarSpecified = nVarSpecified + 1
-
+       
+         case ("work")
+            volWriteWork = .true.
+            nVarSpecified = nVarSpecified + 1
+  
        case default
           pos = len_trim(keyword)
           write(errorMessage,"(3a)" ) "Unknown extra volume output &
