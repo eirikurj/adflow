@@ -67,19 +67,18 @@ for i in range(len(orig_lines)):
         if cur_mode == "both" or cur_mode == mode:
 
             # We now have to check for real/integer types and process:
-            if 'kind=inttype' in orig_lines[i]:
-                orig_lines[i] = orig_lines[i].replace('kind=inttype','kind=4')
+            if "kind=inttype" in orig_lines[i]:
+                orig_lines[i] = orig_lines[i].replace("kind=inttype", "kind=4")
 
-            if 'real(kind=realtype)' in orig_lines[i]:
-                if mode == 'real':
-                    orig_lines[i] = orig_lines[i].replace('kind=realtype','kind=8')
+            if "real(kind=realtype)" in orig_lines[i]:
+                if mode == "real":
+                    orig_lines[i] = orig_lines[i].replace("kind=realtype", "kind=8")
                 else:
-                    orig_lines[i] = orig_lines[i].replace(
-                        'real(kind=realtype)','complex(kind=8)')
+                    orig_lines[i] = orig_lines[i].replace("real(kind=realtype)", "complex(kind=8)")
 
-            if 'real(kind=alwaysrealtype)' in orig_lines[i]:
-                orig_lines[i] = orig_lines[i].replace('kind=alwaysrealtype','kind=8')
-                # end if
+            if "real(kind=alwaysrealtype)" in orig_lines[i]:
+                orig_lines[i] = orig_lines[i].replace("kind=alwaysrealtype", "kind=8")
+
             # end if
             g.write(orig_lines[i])
         # end if

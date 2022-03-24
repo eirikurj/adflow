@@ -217,6 +217,7 @@ contains
     use flowVarRefState, only : nw, nwf
     use iteration, only : currentLevel, groundLevel
     use masterRoutines, only : master_state_b, master_b
+    use adjointvars, only : derivVarsAllocated
     use blockpointers
     use inputtimespectral
     use adjointUtils, only : allocDerivativeValues, zeroADSeeds
@@ -265,10 +266,12 @@ contains
     ! of the fact that only wbar needs to be zeroed since all other
     ! required seeds are zeroed in the individual fast routines. This is
     ! slightly unsafe, but it necessary for speed.
+    
+    ! Allocate the memory for reverse
     if (.not. derivVarsAllocated) then
       call allocDerivativeValues(level)
-   end if
-    do nn=1,nDom
+    end if
+     do nn=1,nDom
        do sps=1,nTimeIntervalsSpectral
           call zeroADSeeds(nn,level, sps)
        end do
@@ -711,7 +714,7 @@ contains
 
     use killsignals, only : adjointFailed
     use inputADjoint, only : adjAbsTol, adjDivTol, adjMaxIter, adjRelTol, &
-         adjRelTolRel, printTiming
+         adjRelTolRel, adjMaxL2Dev, printTiming
     use adjointVars, only: derivVarsAllocated
     use communication, only : myid, adflow_comm_world
     use blockPointers, only : nDom
@@ -841,8 +844,7 @@ contains
        ! Determine the maximum time using MPI reduce
        ! with operation mpi_max.
 
-       call mpi_reduce(timeAdjLocal, timeAdj, 1, adflow_real, &
-            mpi_max, 0, ADFLOW_COMM_WORLD, ierr)
+       call mpi_reduce(timeAdjLocal, timeAdj, 1, adflow_real, mpi_max, 0, ADFLOW_COMM_WORLD, ierr)
 
        call MatMult(dRdWT, psi_like1, adjointRes, ierr)
        call EChk(ierr,__FILE__,__LINE__)
@@ -894,7 +896,8 @@ contains
 
     if (adjointConvergedReason ==  KSP_CONVERGED_RTOL .or. &
          adjointConvergedReason ==  KSP_CONVERGED_ATOL .or. &
-         adjointConvergedReason ==  KSP_CONVERGED_HAPPY_BREAKDOWN) then
+         adjointConvergedReason ==  KSP_CONVERGED_HAPPY_BREAKDOWN .or. &
+         adjResFinal / adjResStart < L2Rel * adjMaxL2Dev) then
        adjointFailed = .False.
     else
        adjointFailed = .True.
@@ -904,7 +907,7 @@ contains
 
 10  format(a)
 20  format(a,1x,f8.2)
-30  format(1x,a,1x,e10.4,4x,a,1x,i4)
+30  format(1x,a,1x,es10.4,4x,a,1x,i4)
 40  format(1x,a,1x,i5,1x,a)
 
 #endif

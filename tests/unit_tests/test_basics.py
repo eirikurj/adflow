@@ -16,9 +16,10 @@ class BasicTests(unittest.TestCase):
         self.CFDSolver = ADFLOW(options=options)
 
     def test_import(self):
-        "Tests if mesh was read properly"
-        nStates = self.CFDSolver.getStateSize()
-        assert(nStates == 72576)
+        gridFile = "input_files/mdo_tutorial_euler.cgns"
+        options = {"gridfile": os.path.join(baseDir, "../../", gridFile)}
+        ADFLOW(options=options, debug=False)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

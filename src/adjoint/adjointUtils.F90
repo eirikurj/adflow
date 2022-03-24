@@ -1357,7 +1357,7 @@ contains
 
     ! Output format.
 
-10  format(i4, 1x, 'KSP Residual norm', 1x, e16.10)
+10  format(i4, 1x, 'KSP Residual norm', 1x, es16.10)
 
   end subroutine MyKSPMonitor
 
@@ -1393,6 +1393,7 @@ contains
     ! and if localPreConIts=1 then subKSP is set to preOnly.
     use constants
     use utils, only : ECHk
+    use inputADjoint, only : GMRESOrthogType
 #include <petsc/finclude/petsc.h>
     use petsc
     implicit none
@@ -1423,9 +1424,21 @@ contains
     call KSPGMRESSetRestart(kspObject, gmresRestart, ierr)
     call EChk(ierr, __FILE__, __LINE__)
 
-    ! If you're using GMRES, set refinement type
-    call KSPGMRESSetCGSRefinementType(kspObject, &
-         KSP_GMRES_CGS_REFINE_IFNEEDED, ierr)
+    ! Set the orthogonalization method for GMRES
+    select case (GMRESOrthogType)
+       case ('modified_gram_schmidt')
+          ! Use modified Gram-Schmidt
+          call KSPGMRESSetOrthogonalization(kspObject, KSPGMRESModifiedGramSchmidtOrthogonalization, ierr)
+       case ('cgs_never_refine')
+          ! Use classical Gram-Schmidt with no refinement
+          call KSPGMRESSetCGSRefinementType(kspObject, KSP_GMRES_CGS_REFINE_NEVER, ierr)
+       case ('cgs_refine_if_needed')
+          ! Use classical Gram-Schmidt with refinement if needed
+          call KSPGMRESSetCGSRefinementType(kspObject, KSP_GMRES_CGS_REFINE_IFNEEDED, ierr)
+       case ('cgs_always_refine')
+          ! Use classical Gram-Schmidt with refinement at every iteration
+          call KSPGMRESSetCGSRefinementType(kspObject, KSP_GMRES_CGS_REFINE_ALWAYS, ierr)
+    end select
     call EChk(ierr, __FILE__, __LINE__)
 
     ! Set the preconditioner side from option:
@@ -1462,10 +1475,6 @@ contains
        ! number  of iterations is set to 1, this ksp object is transparent.
 
        call KSPSetType(master_PC_KSP, 'richardson', ierr)
-       call EChk(ierr, __FILE__, __LINE__)
-
-       call KSPMonitorSet(master_PC_KSP, MyKSPMonitor, PETSC_NULL_FUNCTION, &
-            PETSC_NULL_FUNCTION, ierr)
        call EChk(ierr, __FILE__, __LINE__)
 
        ! Important to set the norm-type to None for efficiency.
