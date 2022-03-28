@@ -2716,6 +2716,7 @@ end subroutine cross_prod
     nullify(flowDoms(nn,level,sps)%dw)
     nullify(flowDoms(nn,level,sps)%fw)
     nullify(flowDoms(nn,level,sps)%scratch)
+    nullify(flowDoms(nn,level,sps)%debug_space)
     nullify(flowDoms(nn,level,sps)%shockSensor)
 
     nullify(flowDoms(nn,level,sps)%dwOldRK)
@@ -3465,6 +3466,7 @@ end subroutine cross_prod
     fw => flowDoms(nn,1,ll)%fw
     dwOldRK => flowDoms(nn,1,ll)%dwOldRK
     scratch => flowDoms(nn,1,ll)%scratch
+    debug_space => flowDoms(nn,1,ll)%debug_space
 
     p1 => flowDoms(nn,mm,ll)%p1
     w1 => flowDoms(nn,mm,ll)%w1
@@ -4360,6 +4362,7 @@ end subroutine cross_prod
           nullify(flowDoms(nn,1,sps)%radJ)
           nullify(flowDoms(nn,1,sps)%radK)
           nullify(flowDoms(nn,1,sps)%scratch)
+          nullify(flowDoms(nn,1,sps)%debug_space)
           nullify(flowDoms(nn,1,sps)%shockSensor)
           ! Check if the zeroth stage runge kutta memory has been
           ! allocated. If so deallocate it and nullify the pointers.

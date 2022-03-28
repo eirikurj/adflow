@@ -291,6 +291,19 @@
                                       ConvHistory = "ConvergenceHistory"
        character(len=maxCGNSNameLen), parameter :: &
                                       TimeHistory = "TimeHistory"
-
+       
+       character(len=maxCGNSNameLen), parameter :: &
+                                      cgnsWork1    = "Work1"
+       character(len=maxCGNSNameLen), parameter :: &
+                                      cgnsWork2    = "Work2"
+       character(len=maxCGNSNameLen), parameter :: &
+                                      cgnsWork3    = "Work3"
+       character(len=maxCGNSNameLen), parameter :: &
+                                      cgnsWork4    = "Work4"
+       character(len=maxCGNSNameLen), parameter :: &
+                                      cgnsWork5    = "Work5"
+       character(len=maxCGNSNameLen), parameter :: &
+                                      cgnsWork6    = "Work6"
+                    
 
        end module cgnsNames

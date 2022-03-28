@@ -37,6 +37,7 @@
        logical :: volWriteResRhoE,      volWriteResTurb,  volWriteBlank
        logical :: volWriteShock,        volWriteFilteredShock, volWriteGC, volWriteStatus
        logical :: volWriteIntermittency
+       logical :: volWriteWork
 !
 !       The logical variables, which define the isosurface variables
 !       to be written.

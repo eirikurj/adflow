@@ -234,6 +234,8 @@ contains
 
     if( volWriteBlank ) nVolDiscrVar  = nVolDiscrVar + 1
 
+    if( volWriteWork ) nVolDiscrVar  = nVolDiscrVar + 6
+    
 
   end subroutine numberOfVolSolVariables
 
@@ -570,6 +572,28 @@ contains
        solNames(nn) = cgnsIntermittency
     endif
 
+    if( volWriteWork ) then
+      nn = nn + 1
+      solNames(nn) = cgnsWork1
+
+      nn = nn + 1
+      solNames(nn) = cgnsWork2
+
+      nn = nn + 1
+      solNames(nn) = cgnsWork3
+      
+      nn = nn + 1
+      solNames(nn) = cgnsWork4
+
+      nn = nn + 1
+      solNames(nn) = cgnsWork5
+      
+      nn = nn + 1
+      solNames(nn) = cgnsWork6
+   endif
+
+    
+    
   end subroutine volSolNames
 
   subroutine surfSolNames(solNames)
@@ -1361,7 +1385,69 @@ contains
           end do
        end do
 
+      case (cgnsWork1)
 
+         do k=kBeg,kEnd
+            do j=jBeg,jEnd
+               do i=iBeg,iEnd
+                  !   wIO(i,j,k,1) = dw(i,j,k,imx)
+                  wIO(i,j,k,1) = debug_space(i,j,k,1)
+               enddo
+            enddo
+         enddo
+  
+      case (cgnsWork2)
+         do k=kBeg,kEnd
+            do j=jBeg,jEnd
+               do i=iBeg,iEnd
+                  !   wIO(i,j,k,1) = dw(i,j,k,imx)
+                  wIO(i,j,k,1) = debug_space(i,j,k,2)
+               enddo
+            enddo
+         enddo
+         
+      case (cgnsWork3)
+         do k=kBeg,kEnd
+            do j=jBeg,jEnd
+               do i=iBeg,iEnd
+                  !   wIO(i,j,k,1) = dw(i,j,k,imx)
+                  wIO(i,j,k,1) = debug_space(i,j,k,3)
+               enddo
+            enddo
+         enddo
+  
+  
+      case (cgnsWork4)
+         do k=kBeg,kEnd
+            do j=jBeg,jEnd
+               do i=iBeg,iEnd
+                  !   wIO(i,j,k,1) = dw(i,j,k,imx)
+                  wIO(i,j,k,1) = debug_space(i,j,k,4)
+               enddo
+            enddo
+         enddo
+  
+      case (cgnsWork5)
+         do k=kBeg,kEnd
+            do j=jBeg,jEnd
+               do i=iBeg,iEnd
+                  !   wIO(i,j,k,1) = dw(i,j,k,imx)
+                  wIO(i,j,k,1) = debug_space(i,j,k,5)
+               enddo
+            enddo
+         enddo
+  
+      case (cgnsWork6)
+         do k=kBeg,kEnd
+            do j=jBeg,jEnd
+               do i=iBeg,iEnd
+                  !   wIO(i,j,k,1) = dw(i,j,k,imx)
+                  wIO(i,j,k,1) = debug_space(i,j,k,6)
+               enddo
+            enddo
+         enddo
+  
+  
     case default
        call terminate("storeSolInBuffer", &
             "This should not happen")

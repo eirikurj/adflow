@@ -126,6 +126,7 @@ module blockPointers
   real(kind=realType), dimension(:,:,:),     pointer :: p1
   real(kind=realType), dimension(:,:,:,:),   pointer :: dw, fw
   real(kind=realType), dimension(:,:,:,:),   pointer :: scratch
+  real(kind=realType), dimension(:,:,:,:),   pointer :: debug_space
   real(kind=realType), dimension(:,:,:,:,:), pointer :: dwOldRK
   real(kind=realType), dimension(:,:,:,:),   pointer :: w1, wr
   real(kind=realType), dimension(:, :, :), pointer:: ux, uy, uz

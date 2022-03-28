@@ -570,12 +570,14 @@ module block
      !                               at least for the flow variables.
      ! shockSensor(0:ib,0:jb,0:kb)   Precomputed sensor value for shock
      !                               that is *NOT* differentated.
-     ! scratch(0:ib,0:jb,0:kb,5)     Scratch space for the turbulence
+     ! scratch(0:ib,0:jb,0:kb,10)     Scratch space for the turbulence
      !                               models. NOMINALLY this could use
      !                               dw and the code was nominally setup
      !                               for this originally. However, this
      !                               complicates reverse mode sensitivities
      !                               So we use this instead.
+     ! debug_space(0:ib,0:jb,0:kb,10)    Scratch space for debugging,
+     !                                   optionally written out to file
 
      real(kind=realType), dimension(:,:,:),     pointer :: p1
      real(kind=realType), dimension(:,:,:,:),   pointer :: dw, fw
@@ -583,8 +585,11 @@ module block
      real(kind=realType), dimension(:,:,:,:,:), pointer :: dwOldRK
      real(kind=realType), dimension(:,:,:,:),   pointer :: w1, wr
      real(kind=realType), dimension(:,:,:,:),   pointer :: scratch
+     real(kind=realType), dimension(:,:,:,:),   pointer :: debug_space
 
 
+   !   real(kind=realType), dimension(:,:,:,:),   pointer :: work1, work2
+     
      ! Added by HDN
      ! Used for ALE. Only allocated on the finest mesh.
      ! Extra dim is used to store initial residuals
