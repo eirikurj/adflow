@@ -82,7 +82,8 @@ class ADFLOW(AeroSolver):
 
     def __init__(self, comm=None, options=None, debug=False, dtype="d"):
         startInitTime = time.time()
-
+        
+        self.adjointSetup = False
         # --------------------- Set adflow Module ------------------------------
         # Load the compiled module using MExt, allowing multiple imports
         if not hasattr(self, "adflow"):
@@ -4630,18 +4631,22 @@ class ADFLOW(AeroSolver):
             famLists = self._expandGroupNames(groupNames)
 
         if mode == "AD":
-            dwdot, tmp, fdot = self.adflow.adjointapi.computematrixfreeproductfwd(
+            dwdot, tmp, fdot, hfdot = self.adflow.adjointapi.computematrixfreeproductfwd(
                 xvdot,
                 extradot,
                 wdot,
-                bcDataValuesdot,
+                BCArraysDot,
+                actArrayDot,
                 useSpatial,
                 useState,
                 famLists,
-                bcDataNames,
-                bcDataValues,
-                bcDataFamLists,
-                bcVarsEmpty,
+                BCArrays,
+                BCVarNames,
+                patchLoc,
+                nBCVars,
+                actArray,
+                actVarNames,
+                actfamList,
                 costSize,
                 max(1, fSize),
                 nTime,
@@ -4650,18 +4655,22 @@ class ADFLOW(AeroSolver):
             if h is None:
                 raise Error("if mode 'FD' is used, a stepsize must be specified using the kwarg 'h'")
 
-            dwdot, tmp, fdot = self.adflow.adjointdebug.computematrixfreeproductfwdfd(
+            dwdot, tmp, fdot, hfdot = self.adflow.adjointdebug.computematrixfreeproductfwdfd(
                 xvdot,
                 extradot,
                 wdot,
-                bcDataValuesdot,
+                BCArraysDot,
+                actArrayDot,
                 useSpatial,
                 useState,
                 famLists,
-                bcDataNames,
-                bcDataValues,
-                bcDataFamLists,
-                bcVarsEmpty,
+                BCArrays,
+                BCVarNames,
+                patchLoc,
+                nBCVars,
+                actArray,
+                actVarNames,
+                actfamList,
                 costSize,
                 max(1, fSize),
                 nTime,
@@ -4672,18 +4681,22 @@ class ADFLOW(AeroSolver):
                 raise Error("if mode 'CS' is used, a stepsize must be specified using the kwarg 'h'")
 
             if self.dtype == "D":
-                dwdot, tmp, fdot = self.adflow.adjointdebug.computematrixfreeproductfwdcs(
+                dwdot, tmp, fdot, hfdot = self.adflow.adjointdebug.computematrixfreeproductfwdcs(
                     xvdot,
                     extradot,
                     wdot,
-                    bcDataValuesdot,
+                    BCArraysDot,
+                    actArrayDot,
                     useSpatial,
                     useState,
                     famLists,
-                    bcDataNames,
-                    bcDataValues,
-                    bcDataFamLists,
-                    bcVarsEmpty,
+                    BCArrays,
+                    BCVarNames,
+                    patchLoc,
+                    nBCVars,
+                    actArray,
+                    actVarNames,
+                    actfamList,
                     costSize,
                     max(1, fSize),
                     nTime,

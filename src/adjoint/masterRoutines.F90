@@ -41,15 +41,13 @@ contains
     use inputOverset, only : oversetUpdateMode
     use oversetCommUtilities, only : updateOversetConnectivity
     use actuatorRegionData, only : nActuatorRegions
+    use actuatorRegion, only : setActuatorData
     use wallDistanceData, only : xSurfVec, xSurf
-    
+
+
+#include <petsc/finclude/petsc.h>
+    use petsc    
     implicit none
-#else
-    implicit none
-#define PETSC_AVOID_MPIF_H
-#include "petsc/finclude/petsc.h"
-#include "petsc/finclude/petscvec.h90"
-#endif
     ! Input Arguments:
     logical, intent(in) :: useSpatial
     integer(kind=intType), optional, dimension(:, :), intent(in) :: famLists
@@ -115,9 +113,8 @@ contains
     do sps=1,nTimeIntervalsSpectral
        do nn=1,nDom
          call setPointers(nn, 1, sps)
-         if (useSpatial) then
 
-          if (useSpatial) then
+         if (useSpatial) then
 
              call VecGetArrayF90(xSurfVec(1, sps), xSurf, ierr)
              call EChk(ierr,__FILE__,__LINE__)
@@ -135,22 +132,24 @@ contains
              call EChk(ierr,__FILE__,__LINE__)
  
           
-            end if
+         end if
 
-          ! Compute the pressures/viscositites
-          call computePressureSimple(.False.)
+         ! Compute the pressures/viscositites
+         call computePressureSimple(.False.)
 
-          ! Compute Laminar/eddy viscosity if required
-          call computeLamViscosity(.False.)
-          call computeEddyViscosity(.False.)
+         ! Compute Laminar/eddy viscosity if required
+         call computeLamViscosity(.False.)
+         call computeEddyViscosity(.False.)
 
-          ! Make sure to call the turb BC's first incase we need to
-          ! correct for K
-          if (equations == RANSequations) then
-             call BCTurbTreatment
-             call applyAllTurbBCthisblock(.True.)
-          end if
-          call applyAllBC_block(.True.)
+         ! Make sure to call the turb BC's first incase we need to
+         ! correct for K
+         if (equations == RANSequations) then
+            call BCTurbTreatment
+            call applyAllTurbBCthisblock(.True.)
+         end if
+         
+         call applyAllBC_block(.True.)
+          
        end do
     end do
 
@@ -674,7 +673,6 @@ contains
     use BCRoutines, only : applyAllBC_block
     use actuatorRegionData, only : nActuatorRegions
     use actuatorRegion, only : setActuatorData_b
-
 #include <petsc/finclude/petsc.h>
     use petsc
     implicit none
