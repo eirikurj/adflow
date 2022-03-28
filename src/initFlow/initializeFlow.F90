@@ -643,6 +643,7 @@ end subroutine infChangeCorrection
                flowDoms(nn,level,sps)%radJ(1:ie,1:je,1:ke),     &
                flowDoms(nn,level,sps)%radK(1:ie,1:je,1:ke),     &
                flowDoms(nn,level,sps)%scratch(0:ib,0:jb,0:kb,10), &
+               flowDoms(nn,level,sps)%debug_space(0:ib,0:jb,0:kb,10), &
                flowDoms(nn,level,sps)%shockSensor(0:ib, 0:jb, 0:kb), &
                stat=ierr)
           if(ierr /= 0)                              &
@@ -656,6 +657,7 @@ end subroutine infChangeCorrection
           flowDoms(nn,level,sps)%fw = zero
 
           flowDoms(nn,level,sps)%scratch = zero
+          flowDoms(nn,level,sps)%debug_space = zero
 
           ! Extra variables for ALE
           if (equationMode == unSteady .and. useALE) then

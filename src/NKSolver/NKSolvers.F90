@@ -632,7 +632,6 @@ contains
     ! Actually do the Linear Krylov Solve
     call KSPSolve(NK_KSP, rVec, deltaW, ierr)
     
-    call saveVecToScratch(deltaW)
 
     ! DON'T just check the error. We want to catch error code 72
     ! which is a floating point error. This is ok, we just reset and
@@ -678,53 +677,6 @@ contains
     approxTotalIts = approxTotalIts + nfEvals + kspIterations
 
   end subroutine NKStep
-
-  subroutine saveVecToScratch(in_vec)
-   use constants
-   use blockPointers, only : nDom, il, jl, kl, scratch
-   use inputTimeSpectral, only : nTimeIntervalsSpectral
-   use flowVarRefState, only : nwf, nt1, nt2, winf
-   use utils, only : setPointers, EChk
-
-   implicit none
-
-   Vec  in_vec
-   integer(kind=intType) :: ierr,nn,sps,i,j,k,l,ii
-   real(kind=realType),pointer :: in_vec_pointer(:)
-
-
-   call VecGetArrayReadF90(in_vec,in_vec_pointer,ierr)
-   call EChk(ierr,__FILE__,__LINE__)
-
-   ii = 1
-   do nn=1,nDom
-      do sps=1,nTimeIntervalsSpectral
-         call setPointers(nn,1_intType,sps)
-
-         do k=2,kl
-            do j=2,jl
-               do i=2,il
-                  do l=1,nwf
-                     scratch(i,j,k,l) = in_vec_pointer(ii)
-                     ii = ii + 1
-                  end do
-                  ! Clip the turb to prevent negative turb SA
-                  ! values. This is similar to the pressure
-                  ! clip. Need to check this for other Turb models.
-                  do l=nt1, nt2
-                     scratch(i, j, k, l) = in_vec_pointer(ii)
-                     ii = ii + 1
-                  end do
-               end do
-            end do
-         end do
-      end do
-   end do
-
-   call VecRestoreArrayReadF90(in_vec,in_vec_pointer,ierr)
-   call EChk(ierr,__FILE__,__LINE__)
-
- end subroutine saveVecToScratch
 
   
   subroutine LSCubic(x, f, g, y, w, fnorm, ynorm, gnorm, nfevals, flag, lambda)
@@ -3977,6 +3929,8 @@ contains
        call EChk(ierr, __FILE__, __LINE__)
     end if
 
+    call saveVecToDebugSpace(deltaW, rVec)
+    
     ! Get the number of iterations from the KSP solver
     call KSPGetIterationNumber(ANK_KSP, kspIterations, ierr)
     call EChk(ierr, __FILE__, __LINE__)
@@ -4163,4 +4117,67 @@ contains
     approxTotalIts = approxTotalIts + feval + kspIterations
 
   end subroutine ANKStep
+  
+  subroutine saveVecToDebugSpace(in_vec, rvec)
+   use constants
+   use blockPointers, only : nDom, il, jl, kl, scratch
+   use blockPointers, only : nDom, il, jl, kl, debug_space
+   use inputTimeSpectral, only : nTimeIntervalsSpectral
+   use flowVarRefState, only : nwf, nt1, nt2, winf
+   use utils, only : setPointers, EChk
+
+   implicit none
+
+   Vec  in_vec, rvec
+   integer(kind=intType) :: ierr,nn,sps,i,j,k,l,ii
+   real(kind=realType),pointer :: in_vec_pointer(:), rvec_pointer(:)
+
+
+   call VecGetArrayReadF90(in_vec,in_vec_pointer,ierr)
+   call EChk(ierr,__FILE__,__LINE__)
+
+   call VecGetArrayF90(rVec,rvec_pointer,ierr)
+   call EChk(ierr,__FILE__,__LINE__)
+
+   ii = 1
+   ! write(*,*) 'dw(231)', in_vec_pointer(231)
+   ! write(*,*) 'dw(236)', in_vec_pointer(236)
+   do nn=1,nDom
+      do sps=1,nTimeIntervalsSpectral
+         call setPointers(nn,1_intType,sps)
+         do k=2,kl
+            do j=2,jl
+               do i=2,il
+                  do l=1,nwf
+                     debug_space(i,j,k,l) = in_vec_pointer(ii)
+                     if (in_vec_pointer(ii) .gt. 0.1 .or. in_vec_pointer(ii) .lt. -0.1) then 
+                        write(*,*) nn, ii, 'debug_space(',i,',',j,',',k,',',l,') = ',in_vec_pointer(ii), 'res', rvec_pointer(ii)
+                     end if
+                     ii = ii + 1
+                  end do
+
+                  ! Clip the turb to prevent negative turb SA
+                  ! values. This is similar to the pressure
+                  ! clip. Need to check this for other Turb models.
+                  do l=nt1, nt2
+                     debug_space(i, j, k, l) = in_vec_pointer(ii)
+                     if (in_vec_pointer(ii) .gt. 0.1 .or. in_vec_pointer(ii) .lt. -0.1) then 
+                        write(*,*) nn, ii, 'debug_space(',i,',',j,',',k,',',l,') = ',in_vec_pointer(ii),' res', rvec_pointer(ii) 
+                     end if
+                     ii = ii + 1
+                  end do
+               end do
+            end do
+         end do
+      end do
+   end do
+   call VecRestoreArrayReadF90(in_vec,in_vec_pointer,ierr)
+   call EChk(ierr,__FILE__,__LINE__)
+
+   call VecRestoreArrayF90(rVec,rvec_pointer,ierr)
+   call EChk(ierr,__FILE__,__LINE__)
+
+ end subroutine saveVecToDebugSpace
+
+
 end module ANKSolver

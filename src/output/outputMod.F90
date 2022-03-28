@@ -1378,7 +1378,7 @@ contains
             do j=jBeg,jEnd
                do i=iBeg,iEnd
                   !   wIO(i,j,k,1) = dw(i,j,k,imx)
-                  wIO(i,j,k,1) = scratch(i,j,k,1)
+                  wIO(i,j,k,1) = debug_space(i,j,k,1)
                enddo
             enddo
          enddo
@@ -1388,7 +1388,7 @@ contains
             do j=jBeg,jEnd
                do i=iBeg,iEnd
                   !   wIO(i,j,k,1) = dw(i,j,k,imx)
-                  wIO(i,j,k,1) = scratch(i,j,k,2)
+                  wIO(i,j,k,1) = debug_space(i,j,k,2)
                enddo
             enddo
          enddo
@@ -1398,7 +1398,7 @@ contains
             do j=jBeg,jEnd
                do i=iBeg,iEnd
                   !   wIO(i,j,k,1) = dw(i,j,k,imx)
-                  wIO(i,j,k,1) = scratch(i,j,k,3)
+                  wIO(i,j,k,1) = debug_space(i,j,k,3)
                enddo
             enddo
          enddo
@@ -1409,7 +1409,7 @@ contains
             do j=jBeg,jEnd
                do i=iBeg,iEnd
                   !   wIO(i,j,k,1) = dw(i,j,k,imx)
-                  wIO(i,j,k,1) = scratch(i,j,k,4)
+                  wIO(i,j,k,1) = debug_space(i,j,k,4)
                enddo
             enddo
          enddo
@@ -1419,7 +1419,7 @@ contains
             do j=jBeg,jEnd
                do i=iBeg,iEnd
                   !   wIO(i,j,k,1) = dw(i,j,k,imx)
-                  wIO(i,j,k,1) = scratch(i,j,k,5)
+                  wIO(i,j,k,1) = debug_space(i,j,k,5)
                enddo
             enddo
          enddo
@@ -1429,7 +1429,7 @@ contains
             do j=jBeg,jEnd
                do i=iBeg,iEnd
                   !   wIO(i,j,k,1) = dw(i,j,k,imx)
-                  wIO(i,j,k,1) = scratch(i,j,k,6)
+                  wIO(i,j,k,1) = debug_space(i,j,k,6)
                enddo
             enddo
          enddo
