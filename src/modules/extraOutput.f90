@@ -17,7 +17,7 @@
        logical :: surfWriteRVx,   surfWriteRVy,      surfWriteRVz
        logical :: surfWriteCp,    surfWritePtotLoss, surfWriteMach
        logical :: surfWriteRMach
-       logical :: surfWriteCf,    surfWriteCh,       surfWriteYPlus
+       logical :: surfWriteCf,    surfWriteSt,       surfWriteYPlus
        logical :: surfWriteCfx,   surfWriteCfy,      surfWriteCfz
        logical :: surfWriteBlank, surfWriteSepSensor
        logical :: surfWriteCavitation, surfWriteGC, surfWriteAxisMoment
@@ -37,7 +37,7 @@
        logical :: volWriteResRhoE,      volWriteResTurb,  volWriteBlank
        logical :: volWriteShock,        volWriteFilteredShock, volWriteGC, volWriteStatus
        logical :: volWriteIntermittency
-       logical :: volWriteWork
+       logical :: volWriteDebug
 !
 !       The logical variables, which define the isosurface variables
 !       to be written.

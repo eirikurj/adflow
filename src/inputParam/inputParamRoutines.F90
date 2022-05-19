@@ -398,7 +398,7 @@ contains
     select case (equations)
     case (EulerEquations)
        surfWriteCf    = .false.
-       surfWriteCh    = .false.
+       surfWriteSt    = .false.
        surfWriteYplus = .false.
        surfWriteCfx   = .false.
        surfWriteCfy   = .false.
@@ -689,7 +689,7 @@ contains
     case (EulerEquations)
        surfWritePtotloss = .true.
        surfWriteCf       = .false.
-       surfWriteCh       = .false.
+       surfWriteSt       = .false.
        surfWriteYplus    = .false.
        surfWriteCfx      = .false.
        surfWriteCfy      = .false.
@@ -698,7 +698,7 @@ contains
     case (NSEquations)
        surfWritePtotloss = .false.
        surfWriteCf       = .true.
-       surfWriteCh       = .false.
+       surfWriteSt       = .false.
        surfWriteYplus    = .false.
        surfWriteCfx      = .true.
        surfWriteCfy      = .true.
@@ -707,7 +707,7 @@ contains
     case (RANSEquations)
        surfWritePtotloss = .false.
        surfWriteCf       = .true.
-       surfWriteCh       = .false.
+       surfWriteSt       = .false.
        surfWriteYplus    = .true.
        surfWriteCfx      = .true.
        surfWriteCfy      = .true.
@@ -2370,7 +2370,7 @@ contains
     surfWriteRMach     = .false.
 
     surfWriteCf    = .false.
-    surfWriteCh    = .false.
+    surfWriteSt    = .false.
     surfWriteYplus = .false.
     surfWriteCfx   = .false.
     surfWriteCfy   = .false.
@@ -2391,7 +2391,6 @@ contains
     nVarSpecified = 0
 
     ! Loop to extract the info from the string variables.
-    write(*,*) 'variables', variables
     do
        ! Condition to exit the loop.
 
@@ -2471,8 +2470,8 @@ contains
           surfWriteCf = .true.
           nVarSpecified = nVarSpecified + 1
 
-       case ("ch")
-          surfWriteCh = .true.
+       case ("st")
+          surfWriteSt = .true.
           nVarSpecified = nVarSpecified + 1
 
        case ("yplus")
@@ -2597,7 +2596,7 @@ contains
     volWriteIntermittency = .false.
     
     
-    volWriteWork = .false.
+    volWriteDebug = .false.
 
 
     ! Initialize nVarSpecified to 0. This serves as a test
@@ -2750,8 +2749,8 @@ contains
           volWriteIntermittency = .true.
           nVarSpecified = nVarSpecified + 1
        
-         case ("work")
-            volWriteWork = .true.
+         case ("debug")
+            volWriteDebug = .true.
             nVarSpecified = nVarSpecified + 1
   
        case default

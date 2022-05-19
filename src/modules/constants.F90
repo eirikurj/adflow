@@ -432,7 +432,8 @@ module constants
        costfuncaavgptot = 87, &
        costfuncaavgps   = 88, &
        costFuncTotHeatTransfer = 89, &
-       costFuncHeatTransferCoef = 90
+       costFuncHeatTransferCoef = 90, &
+       costFuncStantonNumber = 91
 
   integer(kind=intType), parameter :: nLocalValues=52
   integer(kind=intType), parameter :: &

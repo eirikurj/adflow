@@ -88,6 +88,7 @@ class ADFLOW(AeroSolver):
         # Load the compiled module using MExt, allowing multiple imports
         if not hasattr(self, "adflow"):
             curDir = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
+            time.sleep(0.1)
             self.adflow = MExt.MExt("libadflow", curDir, debug=debug)._module
 
         libLoadTime = time.time()
@@ -3371,7 +3372,7 @@ class ADFLOW(AeroSolver):
                         raise Error(
                             "The BC data given for %s for group %s. is an numpy.ndarray with size greater than 1"
                             " to use set a array of bcdata the patch location muct be given too. "
-                            " see how the data is returned from getBCData for the proper structure"(BCVar, group)
+                            " see how the data is returned from getBCData for the proper structure"%(BCVar, group)
                         )
 
                     varDataDict = {}
@@ -6408,6 +6409,7 @@ class ADFLOW(AeroSolver):
 
         convSolFileBaseName = base + "_intermediate_sol"
 
+        self.adflow.inputio.outputdir = self._expandString(outputDir)
         self.adflow.inputio.convsolfilebasename = self._expandString(convSolFileBaseName)
         self.adflow.inputio.forcedvolumefile = self._expandString(volFileName)
         self.adflow.inputio.forcedsurfacefile = self._expandString(surfFileName)

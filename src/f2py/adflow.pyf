@@ -578,6 +578,11 @@ python module libadflow
 
        end module solvers
 
+       module turbapi
+        subroutine turbsolveddadi
+        end subroutine turbsolveddadi
+       end module turbapi
+        
        module aleutils
 
          subroutine shiftlevelale

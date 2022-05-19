@@ -293,17 +293,17 @@
                                       TimeHistory = "TimeHistory"
        
        character(len=maxCGNSNameLen), parameter :: &
-                                      cgnsWork1    = "Work1"
+                                      cgnsDebug1    = "Debug1"
        character(len=maxCGNSNameLen), parameter :: &
-                                      cgnsWork2    = "Work2"
+                                      cgnsDebug2    = "Debug2"
        character(len=maxCGNSNameLen), parameter :: &
-                                      cgnsWork3    = "Work3"
+                                      cgnsDebug3    = "Debug3"
        character(len=maxCGNSNameLen), parameter :: &
-                                      cgnsWork4    = "Work4"
+                                      cgnsDebug4    = "Debug4"
        character(len=maxCGNSNameLen), parameter :: &
-                                      cgnsWork5    = "Work5"
+                                      cgnsDebug5    = "Debug5"
        character(len=maxCGNSNameLen), parameter :: &
-                                      cgnsWork6    = "Work6"
+                                      cgnsDebug6    = "Debug6"
                     
 
        end module cgnsNames

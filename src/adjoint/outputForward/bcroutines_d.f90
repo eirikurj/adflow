@@ -1368,15 +1368,15 @@ contains
 !                *rlv1 *ww0 *ww1
 !   with respect to varying inputs: *rev0 *rev1 *rev2 *pp0 *pp1
 !                *pp2 *rlv0 *rlv1 *rlv2 *ww0 *ww1 *ww2 *(*bcdata.norm)
-!                *(*bcdata.ptinlet) *(*bcdata.ttinlet) *(*bcdata.htinlet)
+!                *(*bcdata.ptinlet) *(*bcdata.ttinlet)
 !   rw status of diff variables: *rev0:in-out *rev1:in-out *rev2:in
 !                *pp0:in-out *pp1:in-out *pp2:in *rlv0:in-out *rlv1:in-out
 !                *rlv2:in *ww0:in-out *ww1:in-out *ww2:in *(*bcdata.norm):in
-!                *(*bcdata.ptinlet):in *(*bcdata.ttinlet):in *(*bcdata.htinlet):in
+!                *(*bcdata.ptinlet):in *(*bcdata.ttinlet):in
 !   plus diff mem management of: rev0:in rev1:in rev2:in pp0:in
 !                pp1:in pp2:in rlv0:in rlv1:in rlv2:in ww0:in ww1:in
 !                ww2:in bcdata:in *bcdata.norm:in *bcdata.ptinlet:in
-!                *bcdata.ttinlet:in *bcdata.htinlet:in
+!                *bcdata.ttinlet:in
   subroutine bcsubsonicinflow_d(nn, secondhalo, correctfork)
 !  bcsubsonicinflow applies the subsonic outflow boundary
 !  condition, total pressure, total density and flow direction
@@ -1402,27 +1402,28 @@ contains
     real(kind=realtype), parameter :: twothird=two*third
     real(kind=realtype) :: gm1, ovgm1
     real(kind=realtype) :: ptot, ttot, htot, a2tot, r, alpha, beta
-    real(kind=realtype) :: ptotd, ttotd, htotd, a2totd, rd, alphad, &
-&   betad
+    real(kind=realtype) :: ptotd, ttotd, rd, alphad, betad
     real(kind=realtype) :: aa2, bb, cc, dd, q, q2, a2, m2, scalefact
-    real(kind=realtype) :: aa2d, bbd, ccd, ddd, qd, q2d, a2d, m2d, &
-&   scalefactd
+    real(kind=realtype) :: qd, a2d, m2d
     real(kind=realtype) :: ssx, ssy, ssz, nnx, nny, nnz
     real(kind=realtype) :: nnxd, nnyd, nnzd
     real(kind=realtype) :: rho, velx, vely, velz, ratio, ts, govgm1
     real(kind=realtype) :: ratiod, tsd
+    real(kind=realtype) :: d_n, c_1, c_2, c_3, discriminant, a2_tot_b, &
+&   jp, m_b, un, gp1, a_tot
+    real(kind=realtype) :: d_nd, c_1d, c_2d, c_3d, discriminantd, &
+&   a2_tot_bd, jpd, m_bd, und
     intrinsic mod
     intrinsic sqrt
     intrinsic max
-    intrinsic min
     real(kind=realtype) :: result1
     real(kind=realtype) :: result1d
-    real(kind=realtype) :: arg1
-    real(kind=realtype) :: arg1d
     real(kind=realtype) :: pwx1
     real(kind=realtype) :: pwx1d
-    real(kind=realtype) :: max1d
-    real(kind=realtype) :: max1
+    real(kind=realtype) :: x1
+    real(kind=realtype) :: x1d
+    real(kind=realtype) :: y1
+    real(kind=realtype) :: y1d
 ! determine the boundary treatment to be used.
     govgm1 = gammaconstant/(gammaconstant-one)
     select case  (bcdata(nn)%subsonicinlettreatment) 
@@ -1440,7 +1441,6 @@ contains
         ptot = bcdata(nn)%ptinlet(i, j)
         ttotd = bcdatad(nn)%ttinlet(i, j)
         ttot = bcdata(nn)%ttinlet(i, j)
-        htotd = bcdatad(nn)%htinlet(i, j)
         htot = bcdata(nn)%htinlet(i, j)
         ssx = bcdata(nn)%flowxdirinlet(i, j)
         ssy = bcdata(nn)%flowydirinlet(i, j)
@@ -1453,126 +1453,86 @@ contains
         nnz = bcdata(nn)%norm(i, j, 3)
 ! some abbreviations in which gamma occurs.
         gm1 = gamma2(i, j) - one
+        gp1 = gamma2(i, j) + one
         ovgm1 = one/gm1
-! determine the acoustic riemann variable that must be
-! extrapolated from the domain.
         rd = -(one*ww2d(i, j, irho)/ww2(i, j, irho)**2)
         r = one/ww2(i, j, irho)
         a2d = gamma2(i, j)*(pp2d(i, j)*r+pp2(i, j)*rd)
         a2 = gamma2(i, j)*pp2(i, j)*r
+        und = ww2d(i, j, ivx)*nnx + ww2(i, j, ivx)*nnxd + ww2d(i, j, ivy&
+&         )*nny + ww2(i, j, ivy)*nnyd + ww2d(i, j, ivz)*nnz + ww2(i, j, &
+&         ivz)*nnzd
+        un = ww2(i, j, ivx)*nnx + ww2(i, j, ivy)*nny + ww2(i, j, ivz)*&
+&         nnz
         if (a2 .eq. 0.0_8) then
           result1d = 0.0_8
         else
           result1d = a2d/(2.0*sqrt(a2))
         end if
         result1 = sqrt(a2)
-        betad = ww2d(i, j, ivx)*nnx + ww2(i, j, ivx)*nnxd + ww2d(i, j, &
-&         ivy)*nny + ww2(i, j, ivy)*nnyd + ww2d(i, j, ivz)*nnz + ww2(i, &
-&         j, ivz)*nnzd + two*ovgm1*result1d
-        beta = ww2(i, j, ivx)*nnx + ww2(i, j, ivy)*nny + ww2(i, j, ivz)*&
-&         nnz + two*ovgm1*result1
-! correct the value of the riemann invariant if total
-! enthalpy scaling must be applied. this scaling may
-! be needed for stability if large gradients of the
-! total temperature are prescribed.
-        scalefact = one
-        if (hscalinginlet) then
-          arg1d = (htotd*r*(ww2(i, j, irhoe)+pp2(i, j))-htot*(rd*(ww2(i&
-&           , j, irhoe)+pp2(i, j))+r*(ww2d(i, j, irhoe)+pp2d(i, j))))/(r&
-&           *(ww2(i, j, irhoe)+pp2(i, j)))**2
-          arg1 = htot/(r*(ww2(i, j, irhoe)+pp2(i, j)))
-          if (arg1 .eq. 0.0_8) then
-            scalefactd = 0.0_8
-          else
-            scalefactd = arg1d/(2.0*sqrt(arg1))
-          end if
-          scalefact = sqrt(arg1)
+        jpd = und + two*ovgm1*result1d
+        jp = un + two*ovgm1*result1
+        a_tot = gm1/two*jp
+        a2_tot_bd = gamma2(i, j)*rgas*ttotd
+        a2_tot_b = gamma2(i, j)*rgas*ttot
+        d_nd = ssx*nnxd + ssy*nnyd + ssz*nnzd
+        d_n = nnx*ssx + nny*ssy + nnz*ssz
+        c_1d = (a2_tot_bd*d_n+a2_tot_b*d_nd)*d_n + a2_tot_b*d_n*d_nd - &
+&         half*gm1*(jpd*jp+jp*jpd)
+        c_1 = a2_tot_b*d_n*d_n - half*gm1*jp*jp
+        c_2d = 4*ovgm1*(a2_tot_bd*d_n+a2_tot_b*d_nd)
+        c_2 = 4*a2_tot_b*d_n*ovgm1
+        c_3d = 4*ovgm1**2*a2_tot_bd - jpd*jp - jp*jpd
+        c_3 = 4*a2_tot_b*ovgm1*ovgm1 - jp*jp
+! solve the quadratic equation for the mach number in the halo cell
+        discriminantd = c_2d*c_2 + c_2*c_2d - four*(c_1d*c_3+c_1*c_3d)
+        discriminant = c_2*c_2 - four*c_1*c_3
+        if (zero .lt. discriminant) then
+          discriminant = discriminant
         else
-          scalefactd = 0.0_8
+          discriminant = zero
+          discriminantd = 0.0_8
         end if
-        betad = betad*scalefact + beta*scalefactd
-        beta = beta*scalefact
-! compute the value of a2 + 0.5*gm1*q2, which is the
-! total speed of sound for constant cp. however, the
-! expression below is also valid for variable cp,
-! although a linearization around the value of the
-! internal cell is performed.
-        q2d = 2*ww2(i, j, ivx)*ww2d(i, j, ivx) + 2*ww2(i, j, ivy)*ww2d(i&
-&         , j, ivy) + 2*ww2(i, j, ivz)*ww2d(i, j, ivz)
-        q2 = ww2(i, j, ivx)**2 + ww2(i, j, ivy)**2 + ww2(i, j, ivz)**2
-        a2totd = gm1*(htotd-rd*(ww2(i, j, irhoe)+pp2(i, j))-r*(ww2d(i, j&
-&         , irhoe)+pp2d(i, j))+half*q2d) + a2d
-        a2tot = gm1*(htot-r*(ww2(i, j, irhoe)+pp2(i, j))+half*q2) + a2
-! compute the dot product between the normal and the
-! velocity direction. this value should be negative.
-        alphad = ssx*nnxd + ssy*nnyd + ssz*nnzd
-        alpha = nnx*ssx + nny*ssy + nnz*ssz
-! compute the coefficients in the quadratic equation
-! for the magnitude of the velocity.
-        aa2d = half*gm1*(alphad*alpha+alpha*alphad)
-        aa2 = half*gm1*alpha*alpha + one
-        bbd = -(gm1*(alphad*beta+alpha*betad))
-        bb = -(gm1*alpha*beta)
-        ccd = half*gm1*(betad*beta+beta*betad) - two*ovgm1*a2totd
-        cc = half*gm1*beta*beta - two*ovgm1*a2tot
-! solve the equation for the magnitude of the
-! velocity. as this value must be positive and both aa2
-! and bb are positive (alpha is negative and beta is
-! positive up till mach = 5.0 or so, which is not
-! really subsonic anymore), it is clear which of the
-! two possible solutions must be taken. some clipping
-! is present, but this is normally not active.
-        ddd = bbd*bb + bb*bbd - four*(aa2d*cc+aa2*ccd)
-        dd = bb*bb - four*aa2*cc
-        if (zero .lt. dd) then
-          max1d = ddd
-          max1 = dd
+        if (discriminant .eq. 0.0_8) then
+          result1d = 0.0_8
         else
-          max1 = zero
-          max1d = 0.0_8
+          result1d = discriminantd/(2.0*sqrt(discriminant))
         end if
-        if (max1 .eq. 0.0_8) then
-          ddd = 0.0_8
+        result1 = sqrt(discriminant)
+        x1d = ((result1d-c_2d)*two*c_1-(-c_2+result1)*two*c_1d)/(two*c_1&
+&         )**2
+        x1 = (-c_2+result1)/(two*c_1)
+        if (discriminant .eq. 0.0_8) then
+          result1d = 0.0_8
         else
-          ddd = max1d/(2.0*sqrt(max1))
+          result1d = discriminantd/(2.0*sqrt(discriminant))
         end if
-        dd = sqrt(max1)
-        qd = ((ddd-bbd)*two*aa2-(-bb+dd)*two*aa2d)/(two*aa2)**2
-        q = (-bb+dd)/(two*aa2)
-        if (zero .lt. q) then
-          q = q
+        result1 = sqrt(discriminant)
+        y1d = ((-c_2d-result1d)*two*c_1-(-c_2-result1)*two*c_1d)/(two*&
+&         c_1)**2
+        y1 = (-c_2-result1)/(two*c_1)
+        if (x1 .lt. y1) then
+          m_bd = y1d
+          m_b = y1
         else
-          q = zero
-          qd = 0.0_8
+          m_bd = x1d
+          m_b = x1
         end if
-        q2d = qd*q + q*qd
-        q2 = q*q
-! compute the speed of sound squared from the total
-! speed of sound equation (== total enthalpy equation
-! for constant cp).
-        a2d = a2totd - half*gm1*q2d
-        a2 = a2tot - half*gm1*q2
-! compute the mach number squared and cut it between
-! 0.0 and 1.0. adapt the velocity and speed of sound
-! squared accordingly.
-        m2d = (q2d*a2-q2*a2d)/a2**2
-        m2 = q2/a2
-        if (one .gt. m2) then
-          m2 = m2
+        if (m_b .lt. zero) then
+          m_b = 1e-4
+!   write(*,*) 'warning: m_b < 0, setting to 1e-4'
+          m_bd = 0.0_8
+        end if
+        m2d = m_bd*m_b + m_b*m_bd
+        m2 = m_b*m_b
+        if (a2_tot_b .eq. 0.0_8) then
+          result1d = 0.0_8
         else
-          m2 = one
-          m2d = 0.0_8
+          result1d = a2_tot_bd/(2.0*sqrt(a2_tot_b))
         end if
-        q2d = m2d*a2 + m2*a2d
-        q2 = m2*a2
-        if (q2 .eq. 0.0_8) then
-          qd = 0.0_8
-        else
-          qd = q2d/(2.0*sqrt(q2))
-        end if
-        q = sqrt(q2)
-        a2d = a2totd - half*gm1*q2d
-        a2 = a2tot - half*gm1*q2
+        result1 = sqrt(a2_tot_b)
+        qd = m_bd*result1 + m_b*result1d
+        q = m_b*result1
 ! compute the velocities in the halo cell and use rho,
 ! rhoe and p as temporary buffers to store the total
 ! temperature, total pressure and static temperature.
@@ -1590,8 +1550,9 @@ contains
 ! compute the static pressure from the total pressure
 ! and the temperature ratio. compute the density using
 ! the gas law.
-          tsd = a2d/(gamma2(i, j)*rgas)
-          ts = a2/(gamma2(i, j)*rgas)
+          tsd = (ttotd*(one+half*gm1*m2)-ttot*half*gm1*m2d)/(one+half*&
+&           gm1*m2)**2
+          ts = ttot/(one+half*gm1*m2)
           pwx1d = (tsd*ttot-ts*ttotd)/ttot**2
           pwx1 = ts/ttot
           if (pwx1 .gt. 0.0_8 .or. (pwx1 .lt. 0.0_8 .and. govgm1 .eq. &
@@ -1736,14 +1697,15 @@ contains
     real(kind=realtype) :: aa2, bb, cc, dd, q, q2, a2, m2, scalefact
     real(kind=realtype) :: ssx, ssy, ssz, nnx, nny, nnz
     real(kind=realtype) :: rho, velx, vely, velz, ratio, ts, govgm1
+    real(kind=realtype) :: d_n, c_1, c_2, c_3, discriminant, a2_tot_b, &
+&   jp, m_b, un, gp1, a_tot
     intrinsic mod
     intrinsic sqrt
     intrinsic max
-    intrinsic min
     real(kind=realtype) :: result1
-    real(kind=realtype) :: arg1
     real(kind=realtype) :: pwx1
-    real(kind=realtype) :: max1
+    real(kind=realtype) :: x1
+    real(kind=realtype) :: y1
 ! determine the boundary treatment to be used.
     govgm1 = gammaconstant/(gammaconstant-one)
     select case  (bcdata(nn)%subsonicinlettreatment) 
@@ -1768,76 +1730,41 @@ contains
         nnz = bcdata(nn)%norm(i, j, 3)
 ! some abbreviations in which gamma occurs.
         gm1 = gamma2(i, j) - one
+        gp1 = gamma2(i, j) + one
         ovgm1 = one/gm1
-! determine the acoustic riemann variable that must be
-! extrapolated from the domain.
         r = one/ww2(i, j, irho)
         a2 = gamma2(i, j)*pp2(i, j)*r
+        un = ww2(i, j, ivx)*nnx + ww2(i, j, ivy)*nny + ww2(i, j, ivz)*&
+&         nnz
         result1 = sqrt(a2)
-        beta = ww2(i, j, ivx)*nnx + ww2(i, j, ivy)*nny + ww2(i, j, ivz)*&
-&         nnz + two*ovgm1*result1
-! correct the value of the riemann invariant if total
-! enthalpy scaling must be applied. this scaling may
-! be needed for stability if large gradients of the
-! total temperature are prescribed.
-        scalefact = one
-        if (hscalinginlet) then
-          arg1 = htot/(r*(ww2(i, j, irhoe)+pp2(i, j)))
-          scalefact = sqrt(arg1)
-        end if
-        beta = beta*scalefact
-! compute the value of a2 + 0.5*gm1*q2, which is the
-! total speed of sound for constant cp. however, the
-! expression below is also valid for variable cp,
-! although a linearization around the value of the
-! internal cell is performed.
-        q2 = ww2(i, j, ivx)**2 + ww2(i, j, ivy)**2 + ww2(i, j, ivz)**2
-        a2tot = gm1*(htot-r*(ww2(i, j, irhoe)+pp2(i, j))+half*q2) + a2
-! compute the dot product between the normal and the
-! velocity direction. this value should be negative.
-        alpha = nnx*ssx + nny*ssy + nnz*ssz
-! compute the coefficients in the quadratic equation
-! for the magnitude of the velocity.
-        aa2 = half*gm1*alpha*alpha + one
-        bb = -(gm1*alpha*beta)
-        cc = half*gm1*beta*beta - two*ovgm1*a2tot
-! solve the equation for the magnitude of the
-! velocity. as this value must be positive and both aa2
-! and bb are positive (alpha is negative and beta is
-! positive up till mach = 5.0 or so, which is not
-! really subsonic anymore), it is clear which of the
-! two possible solutions must be taken. some clipping
-! is present, but this is normally not active.
-        dd = bb*bb - four*aa2*cc
-        if (zero .lt. dd) then
-          max1 = dd
+        jp = un + two*ovgm1*result1
+        a_tot = gm1/two*jp
+        a2_tot_b = gamma2(i, j)*rgas*ttot
+        d_n = nnx*ssx + nny*ssy + nnz*ssz
+        c_1 = a2_tot_b*d_n*d_n - half*gm1*jp*jp
+        c_2 = 4*a2_tot_b*d_n*ovgm1
+        c_3 = 4*a2_tot_b*ovgm1*ovgm1 - jp*jp
+! solve the quadratic equation for the mach number in the halo cell
+        discriminant = c_2*c_2 - four*c_1*c_3
+        if (zero .lt. discriminant) then
+          discriminant = discriminant
         else
-          max1 = zero
+          discriminant = zero
         end if
-        dd = sqrt(max1)
-        q = (-bb+dd)/(two*aa2)
-        if (zero .lt. q) then
-          q = q
+        result1 = sqrt(discriminant)
+        x1 = (-c_2+result1)/(two*c_1)
+        result1 = sqrt(discriminant)
+        y1 = (-c_2-result1)/(two*c_1)
+        if (x1 .lt. y1) then
+          m_b = y1
         else
-          q = zero
+          m_b = x1
         end if
-        q2 = q*q
-! compute the speed of sound squared from the total
-! speed of sound equation (== total enthalpy equation
-! for constant cp).
-        a2 = a2tot - half*gm1*q2
-! compute the mach number squared and cut it between
-! 0.0 and 1.0. adapt the velocity and speed of sound
-! squared accordingly.
-        m2 = q2/a2
-        if (one .gt. m2) then
-          m2 = m2
-        else
-          m2 = one
-        end if
-        q2 = m2*a2
-        q = sqrt(q2)
-        a2 = a2tot - half*gm1*q2
+        if (m_b .lt. zero) m_b = 1e-4
+!   write(*,*) 'warning: m_b < 0, setting to 1e-4'
+        m2 = m_b*m_b
+        result1 = sqrt(a2_tot_b)
+        q = m_b*result1
 ! compute the velocities in the halo cell and use rho,
 ! rhoe and p as temporary buffers to store the total
 ! temperature, total pressure and static temperature.
@@ -1852,7 +1779,7 @@ contains
 ! compute the static pressure from the total pressure
 ! and the temperature ratio. compute the density using
 ! the gas law.
-          ts = a2/(gamma2(i, j)*rgas)
+          ts = ttot/(one+half*gm1*m2)
           pwx1 = ts/ttot
           ratio = pwx1**govgm1
           pp1(i, j) = ptot*ratio

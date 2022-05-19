@@ -158,7 +158,7 @@ contains
     if( surfWriteMach )     nSolVar = nSolVar +1
     if( surfWriteRMach )    nSolVar = nSolVar +1
     if( surfWriteCf )       nSolVar = nSolVar +1
-    if( surfWriteCh )       nSolVar = nSolVar +1
+    if( surfWriteSt )       nSolVar = nSolVar +1
     if( surfWriteYplus )    nSolVar = nSolVar +1
     if( surfWriteCfx )      nSolVar = nSolVar +1
     if( surfWriteCfy )      nSolVar = nSolVar +1
@@ -234,7 +234,7 @@ contains
 
     if( volWriteBlank ) nVolDiscrVar  = nVolDiscrVar + 1
 
-    if( volWriteWork ) nVolDiscrVar  = nVolDiscrVar + 6
+    if( volWriteDebug ) nVolDiscrVar  = nVolDiscrVar + 6
     
 
   end subroutine numberOfVolSolVariables
@@ -572,24 +572,24 @@ contains
        solNames(nn) = cgnsIntermittency
     endif
 
-    if( volWriteWork ) then
+    if( volWriteDebug ) then
       nn = nn + 1
-      solNames(nn) = cgnsWork1
+      solNames(nn) = cgnsDebug1
 
       nn = nn + 1
-      solNames(nn) = cgnsWork2
+      solNames(nn) = cgnsDebug2
 
       nn = nn + 1
-      solNames(nn) = cgnsWork3
+      solNames(nn) = cgnsDebug3
       
       nn = nn + 1
-      solNames(nn) = cgnsWork4
+      solNames(nn) = cgnsDebug4
 
       nn = nn + 1
-      solNames(nn) = cgnsWork5
+      solNames(nn) = cgnsDebug5
       
       nn = nn + 1
-      solNames(nn) = cgnsWork6
+      solNames(nn) = cgnsDebug6
    endif
 
     
@@ -691,7 +691,7 @@ contains
        solNames(nn) = cgnsSkinFmag
     endif
 
-    if( surfWriteCh ) then
+    if( surfWriteSt ) then
        nn = nn + 1
        solNames(nn) = cgnsStanton
     endif
@@ -1385,7 +1385,7 @@ contains
           end do
        end do
 
-      case (cgnsWork1)
+      case (cgnsDebug1)
 
          do k=kBeg,kEnd
             do j=jBeg,jEnd
@@ -1396,7 +1396,7 @@ contains
             enddo
          enddo
   
-      case (cgnsWork2)
+      case (cgnsDebug2)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
                do i=iBeg,iEnd
@@ -1406,7 +1406,7 @@ contains
             enddo
          enddo
          
-      case (cgnsWork3)
+      case (cgnsDebug3)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
                do i=iBeg,iEnd
@@ -1417,7 +1417,7 @@ contains
          enddo
   
   
-      case (cgnsWork4)
+      case (cgnsDebug4)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
                do i=iBeg,iEnd
@@ -1427,7 +1427,7 @@ contains
             enddo
          enddo
   
-      case (cgnsWork5)
+      case (cgnsDebug5)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
                do i=iBeg,iEnd
@@ -1437,7 +1437,7 @@ contains
             enddo
          enddo
   
-      case (cgnsWork6)
+      case (cgnsDebug6)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
                do i=iBeg,iEnd
@@ -2123,7 +2123,7 @@ contains
 
     case (cgnsStanton)
 
-       ! Some constants needed to compute the stanton number.
+      ! Some constants needed to compute the stanton number.
 
        gm1   = gammaInf - one
        a2Tot = gammaInf*pInf*(one + half*gm1*MachCoef*MachCoef) &
@@ -2250,8 +2250,6 @@ contains
 
       case (cgnsHeatFlux)
 
-         ! Some constants needed to compute the stanton number.
-
          fact = pRef*sqrt(pRef/rhoRef)
 
          ! Loop over the given range of faces. As the viscous data is
@@ -2267,7 +2265,7 @@ contains
                jor = j + subface_jBegOr - 1
                if (jor == jBeg) then 
                   jj = j + 1 
-               else if (jor == jEnd) then
+               else if (jor == jEnd + 1) then
                   jj = j - 1
                else
                   jj = j 
@@ -2282,7 +2280,7 @@ contains
                   ior = i + subface_iBegOr - 1
                   if (ior == iBeg) then 
                      ii = i + 1 
-                  else if (ior == iEnd) then
+                  else if (ior == iEnd + 1) then
                      ii = i - 1
                   else
                      ii = i 
@@ -2305,11 +2303,74 @@ contains
                qw = fact*(viscSubface(mm)%q(ii,jj,1)*BCData(mm)%norm(ii,jj,1) &
                + viscSubface(mm)%q(ii,jj,2)*BCData(mm)%norm(ii,jj,2) &
                + viscSubface(mm)%q(ii,jj,3)*BCData(mm)%norm(ii,jj,3))
-               ! write(*,*) 'qw', qw, viscSubface(mm)%q(ii,jj,1), viscSubface(mm)%q(ii,jj,2), viscSubface(mm)%q(ii,jj,3)
                nn = nn + 1
                buffer(nn) = qw
             enddo
          enddo
+         
+      case (cgnsHeatTransferCoef)
+  
+         fact = pRef*sqrt(pRef/rhoRef)
+
+       ! Loop over the given range of faces. As the viscous data is
+         ! only present in the owned faces, the values of the halo's
+         ! are set equal to the nearest physical face. Therefore the
+         ! working indices are ii and jj.
+         do j=rangeFace(2,1), rangeFace(2,2)
+         
+            !  if satements are used to copy the value of of the interior
+            ! cell since the value isn't difined in the rind ell 
+            
+            if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+               jor = j + subface_jBegOr - 1
+               if (jor == jBeg) then 
+                  jj = j + 1 
+               else if (jor == jEnd + 1) then
+                  jj = j - 1
+               else
+                  jj = j 
+               endif
+            else
+               jj = j
+               
+            end if
+   
+            do i=rangeFace(1,1), rangeFace(1,2)
+                if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+                  ior = i + subface_iBegOr - 1
+                  if (ior == iBeg) then 
+                     ii = i + 1 
+                  else if (ior == iEnd + 1) then
+                     ii = i - 1
+                  else
+                     ii = i 
+                  endif
+               else
+                  ii = i
+               endif
+  
+  
+               ! Determine the viscous subface on which this
+               ! face is located.
+  
+               mm = viscPointer(ii,jj)
+  
+               ! Compute the heat flux. Multipy with the sign of the
+               ! normal to obtain the correct value.
+  
+               qw = fact*(viscSubface(mm)%q(ii,jj,1)*BCData(mm)%norm(ii,jj,1) &
+               + viscSubface(mm)%q(ii,jj,2)*BCData(mm)%norm(ii,jj,2) &
+               + viscSubface(mm)%q(ii,jj,3)*BCData(mm)%norm(ii,jj,3))
+
+               nn = nn + 1
+               if (BCType(mm) == NSWallIsothermal) then
+                  buffer(nn) = qw/((Tref - BCData(mm)%TNS_Wall(ii,jj)*Tref))
+               else
+                  buffer(nn) = 0.0
+               end if
+            enddo
+         enddo
+  
 
     end select varName
 

@@ -1032,7 +1032,7 @@ surfaceVariables:
       * ``cfx`` (x-component of the skin friction)
       * ``cfy`` (y-component of the skin friction)
       * ``cfz`` (z-component of the skin friction)
-      * ``ch`` (Stanton number)
+      * ``st`` (Stanton number)
       * ``yplus`` (y+ value of the cell center of the first cell)
       * ``lift`` (lift force)
       * ``blank`` (cell iblank values used for visualization or other post-processing)

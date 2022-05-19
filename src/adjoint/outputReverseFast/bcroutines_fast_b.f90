@@ -616,11 +616,13 @@ contains
     real(kind=realtype) :: aa2, bb, cc, dd, q, q2, a2, m2, scalefact
     real(kind=realtype) :: ssx, ssy, ssz, nnx, nny, nnz
     real(kind=realtype) :: rho, velx, vely, velz, ratio, ts, govgm1
+    real(kind=realtype) :: d_n, c_1, c_2, c_3, discriminant, a2_tot_b, &
+&   jp, m_b, un, gp1, a_tot
     intrinsic mod
     intrinsic sqrt
     intrinsic max
-    intrinsic min
-    real(kind=realtype) :: max1
+    real(kind=realtype) :: x1
+    real(kind=realtype) :: y1
 ! determine the boundary treatment to be used.
     govgm1 = gammaconstant/(gammaconstant-one)
     select case  (bcdata(nn)%subsonicinlettreatment) 
@@ -645,73 +647,37 @@ contains
         nnz = bcdata(nn)%norm(i, j, 3)
 ! some abbreviations in which gamma occurs.
         gm1 = gamma2(i, j) - one
+        gp1 = gamma2(i, j) + one
         ovgm1 = one/gm1
-! determine the acoustic riemann variable that must be
-! extrapolated from the domain.
         r = one/ww2(i, j, irho)
         a2 = gamma2(i, j)*pp2(i, j)*r
-        beta = ww2(i, j, ivx)*nnx + ww2(i, j, ivy)*nny + ww2(i, j, ivz)*&
-&         nnz + two*ovgm1*sqrt(a2)
-! correct the value of the riemann invariant if total
-! enthalpy scaling must be applied. this scaling may
-! be needed for stability if large gradients of the
-! total temperature are prescribed.
-        scalefact = one
-        if (hscalinginlet) scalefact = sqrt(htot/(r*(ww2(i, j, irhoe)+&
-&           pp2(i, j))))
-        beta = beta*scalefact
-! compute the value of a2 + 0.5*gm1*q2, which is the
-! total speed of sound for constant cp. however, the
-! expression below is also valid for variable cp,
-! although a linearization around the value of the
-! internal cell is performed.
-        q2 = ww2(i, j, ivx)**2 + ww2(i, j, ivy)**2 + ww2(i, j, ivz)**2
-        a2tot = gm1*(htot-r*(ww2(i, j, irhoe)+pp2(i, j))+half*q2) + a2
-! compute the dot product between the normal and the
-! velocity direction. this value should be negative.
-        alpha = nnx*ssx + nny*ssy + nnz*ssz
-! compute the coefficients in the quadratic equation
-! for the magnitude of the velocity.
-        aa2 = half*gm1*alpha*alpha + one
-        bb = -(gm1*alpha*beta)
-        cc = half*gm1*beta*beta - two*ovgm1*a2tot
-! solve the equation for the magnitude of the
-! velocity. as this value must be positive and both aa2
-! and bb are positive (alpha is negative and beta is
-! positive up till mach = 5.0 or so, which is not
-! really subsonic anymore), it is clear which of the
-! two possible solutions must be taken. some clipping
-! is present, but this is normally not active.
-        dd = bb*bb - four*aa2*cc
-        if (zero .lt. dd) then
-          max1 = dd
+        un = ww2(i, j, ivx)*nnx + ww2(i, j, ivy)*nny + ww2(i, j, ivz)*&
+&         nnz
+        jp = un + two*ovgm1*sqrt(a2)
+        a_tot = gm1/two*jp
+        a2_tot_b = gamma2(i, j)*rgas*ttot
+        d_n = nnx*ssx + nny*ssy + nnz*ssz
+        c_1 = a2_tot_b*d_n*d_n - half*gm1*jp*jp
+        c_2 = 4*a2_tot_b*d_n*ovgm1
+        c_3 = 4*a2_tot_b*ovgm1*ovgm1 - jp*jp
+! solve the quadratic equation for the mach number in the halo cell
+        discriminant = c_2*c_2 - four*c_1*c_3
+        if (zero .lt. discriminant) then
+          discriminant = discriminant
         else
-          max1 = zero
+          discriminant = zero
         end if
-        dd = sqrt(max1)
-        q = (-bb+dd)/(two*aa2)
-        if (zero .lt. q) then
-          q = q
+        x1 = (-c_2+sqrt(discriminant))/(two*c_1)
+        y1 = (-c_2-sqrt(discriminant))/(two*c_1)
+        if (x1 .lt. y1) then
+          m_b = y1
         else
-          q = zero
+          m_b = x1
         end if
-        q2 = q*q
-! compute the speed of sound squared from the total
-! speed of sound equation (== total enthalpy equation
-! for constant cp).
-        a2 = a2tot - half*gm1*q2
-! compute the mach number squared and cut it between
-! 0.0 and 1.0. adapt the velocity and speed of sound
-! squared accordingly.
-        m2 = q2/a2
-        if (one .gt. m2) then
-          m2 = m2
-        else
-          m2 = one
-        end if
-        q2 = m2*a2
-        q = sqrt(q2)
-        a2 = a2tot - half*gm1*q2
+        if (m_b .lt. zero) m_b = 1e-4
+!   write(*,*) 'warning: m_b < 0, setting to 1e-4'
+        m2 = m_b*m_b
+        q = m_b*sqrt(a2_tot_b)
 ! compute the velocities in the halo cell and use rho,
 ! rhoe and p as temporary buffers to store the total
 ! temperature, total pressure and static temperature.
@@ -726,7 +692,7 @@ contains
 ! compute the static pressure from the total pressure
 ! and the temperature ratio. compute the density using
 ! the gas law.
-          ts = a2/(gamma2(i, j)*rgas)
+          ts = ttot/(one+half*gm1*m2)
           ratio = (ts/ttot)**govgm1
           pp1(i, j) = ptot*ratio
           ww1(i, j, irho) = ptot*ratio/(rgas*ts)

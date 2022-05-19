@@ -24,6 +24,7 @@ import os
 import copy
 from . import MExt
 from .pyADflow import ADFLOW
+import time
 
 # =============================================================================
 # ADFLOW_C Class
@@ -38,6 +39,7 @@ class ADFLOW_C(ADFLOW):
             debug = True
 
         curDir = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
+        time.sleep(0.1)
         self.adflow = MExt.MExt("libadflow_cs", curDir, debug=debug)._module
         ADFLOW.__init__(self, dtype="D", *args, **kwargs)
 

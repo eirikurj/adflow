@@ -1649,7 +1649,7 @@ module ANKSolver
   implicit none
 
   Mat  dRdw, dRdwPre
-  Vec wVec, rVec, deltaW, baseRes
+  Vec wVec, rVec, deltaW, baseRes, work
   KSP  ANK_KSP
 
   ! Turb KSP related PETSc objects
@@ -1768,6 +1768,10 @@ contains
 
        call VecDuplicate(wVec, baseRes, ierr)
        call EChk(ierr, __FILE__, __LINE__)
+       
+       call VecDuplicate(wVec, work, ierr)
+       call EChk(ierr, __FILE__, __LINE__)
+
 
        ! Create Pre-Conditioning Matrix
        allocate(nnzDiagonal(nCellsLocal(1_intType)*nTimeIntervalsSpectral), &
@@ -2592,10 +2596,12 @@ contains
     use NKSolver, only : setRvec
     use utils, only : setPointers, EChk
     use blockette, only : blocketteRes
+    use communication, only : myid
     implicit none
 
     real(kind=realType), intent(in) :: omega
-
+    
+    real(kind=alwaysRealType) :: steady_norm, unsteady_norm, wnorm
     real(kind=realType) :: dtinv, rho, uu, vv, ww
     integer(kind=intType) :: ierr, nn, sps, i, j, k, l, ii, iiRho
     real(kind=realType),pointer :: rvec_pointer(:)
@@ -2605,6 +2611,12 @@ contains
     call blocketteRes(useTurbRes=ANK_coupled)
     call setRVecANK(rVec)
 
+    ! get the steady_norm of rvec
+    call VecNorm(rVec, NORM_2, steady_norm,ierr)
+    call EChk(ierr,__FILE__,__LINE__)
+    
+    
+    
     ! Add the contribution from the time stepping term
 
     call VecGetArrayF90(rVec,rvec_pointer,ierr)
@@ -2741,7 +2753,18 @@ contains
 
     call VecRestoreArrayReadF90(deltaW, dvec_pointer, ierr)
     call EChk(ierr,__FILE__,__LINE__)
-
+    
+    
+    call VecNorm(rVec, NORM_2, unsteady_norm,ierr)
+    call EChk(ierr,__FILE__,__LINE__)
+    
+    call VecNorm(deltaW, NORM_2, wnorm,ierr)
+    call EChk(ierr,__FILE__,__LINE__)
+    
+   !  if (myid == 0) then
+   !    write(*,*) achar(27)//'[93m','norm of residuals steady: ', steady_norm,&
+   !    "unsteady: ", unsteady_norm, "omega*wnorm", omega*wnorm, achar(27)//'[0m'
+   !  end if
     ! We don't check an error here, so just pass back zero
     ierr = 0
 
@@ -3569,7 +3592,7 @@ contains
 
             ! Set the initial new lambda. This is working off the
             ! potentially already physically limited step.
-            lambdaTurb = 0.7_realType * lambdaTurb
+            lambdaTurb = 0.5_realType * lambdaTurb
 
             backtrack: do iter=1, 12
 
@@ -3698,7 +3721,9 @@ contains
     real(kind=alwaysRealType) :: rtol, totalR_dummy, linearRes, norm
     real(kind=alwaysRealType) :: resHist(ANK_maxIter+1)
     real(kind=alwaysRealType) :: unsteadyNorm, unsteadyNorm_old
-    logical :: correctForK, LSFailed
+    real(kind=alwaysRealType) :: ynorm, initslope, rnorm
+    logical :: correctForK, LSFailed, isStepTooSmall
+    
 
     ! Enter this check if this is the first ANK step OR we are switching to the coupled ANK solver
     if (firstCall .or. &
@@ -3769,11 +3794,12 @@ contains
     call EChk(ierr, __FILE__, __LINE__)
 
     ! Determine if if we need to form the Preconditioner
-    if (mod(ANK_iter, ANK_jacobianLag) == 0 .or. totalR/totalR_pcUpdate < ANK_pcUpdateTol) then
-
+    isStepTooSmall = (lambda < ANK_stepMin*ANK_stepFactor)
+    if (((mod(ANK_iter, ANK_jacobianLag) == 0) .or. (totalR/totalR_pcUpdate < ANK_pcUpdateTol)) .or. isStepTooSmall ) then
+       
        ! First of all, update the minimum cfl wrt the overall convergence
-       ANK_CFLMin = min(ANK_CFLLimit, ANK_CFLMinBase*(totalR0/totalR)**ANK_CFLExponent)
-
+      !  ANK_CFLMin = mins(ANK_CFLLimit, ANK_CFLMinBase*(totalR0/totalR)**ANK_CFLExponent)
+       ANK_CFLMin = 1.0
        ! Update the CFL number depending on the outcome of the last iteration
        if (lambda < ANK_stepMin * ANK_stepFactor) then
 
@@ -3929,7 +3955,6 @@ contains
        call EChk(ierr, __FILE__, __LINE__)
     end if
 
-    call saveVecToDebugSpace(deltaW, rVec)
     
     ! Get the number of iterations from the KSP solver
     call KSPGetIterationNumber(ANK_KSP, kspIterations, ierr)
@@ -3937,7 +3962,24 @@ contains
 
     call KSPGetConvergedReason(ANK_KSP, reason, ierr)
     call EChk(ierr, __FILE__, __LINE__)
-
+   
+    call VecNorm(deltaW, NORM_2, ynorm, ierr)
+    call EChk(ierr,__FILE__,__LINE__)
+    
+      ! !  check the solution accuracy 
+   !  call MatMult(dRdW, deltaW, work, ierr)
+   !  call EChk(ierr,__FILE__,__LINE__)
+    
+   ! call VecNorm(deltaW, NORM_2, ynorm, ierr)
+   ! call EChk(ierr,__FILE__,__LINE__)
+   
+    
+   !  if (myid == 0) then
+   !    write(*,*) 'lin res', resHist(kspIterations+1)/resHist(1), &
+   !    ! 'lin res check', norm/resHist(1), &
+   !     'deltaW norm', ynorm, reason
+   !  end if     
+    
     ! Return previously changed variables back to normal, VERY IMPORTANT
     if (totalR > ANK_secondOrdSwitchTol*totalR0) then
        ! Set ANK_useDissApprox back to False to go back to using actual flux routines
@@ -3963,6 +4005,10 @@ contains
     ! Set the updated state variables
     call setWANK(wVec,1,nState)
 
+   !  call VecDuplicate(rVec, work, ierr)
+   !  call EChk(ierr, __FILE__, __LINE__)
+ 
+
     ! Compute the unsteady residuals. The actual residuals
     ! also get calculated in the process, and are stored in
     ! dw. Make sure to call setRVec/setRVecANK after this
@@ -3973,9 +4019,31 @@ contains
     ! Count the number of of residual evaluations outside the KSP solve
     feval = 1_intType
 
+   !  call VecAXPY(work, -one, rVec, ierr)
+   !  call EChk(ierr,__FILE__,__LINE__)
+ 
+   !  call VecNorm(work, NORM_2, norm,ierr)
+   !  call EChk(ierr,__FILE__,__LINE__)
+    
+   !  call VecNorm(deltaW, NORM_2, rnorm, ierr)
+   !  call EChk(ierr,__FILE__,__LINE__)
+    
+   !  if (myid == 0) then
+   !    write(*,*) 'lin res', resHist(kspIterations+1)/resHist(1), &
+   !    'error diff norm', norm, &
+   !    'deltaW norm', ynorm, reason
+   !  end if     
+    
+    
+   !  call saveStateToDebugSpace(deltaW, rVec)
+
+    
     ! Check if the norm of the rVec is bad:
     call VecNorm(rVec, NORM_2, unsteadyNorm, ierr)
     call EChk(ierr, __FILE__, __LINE__)
+   !  if (myid == 0) then
+   !    write(*,*) 'backtrack', unsteadyNorm, lambda, unsteadyNorm_old, ANK_unstdyLSTol
+   !  end if 
 
     ! initialize this outside the ls
     LSFailed = .False.
@@ -3992,9 +4060,9 @@ contains
 
        ! Set the initial new lambda. This is working off the
        ! potentially already physically limited step.
-       lambda = 0.7_realType * lambda
+       lambda = 0.5_realType * lambda
 
-       backtrack: do iter=1, 12
+       backtrack: do iter=1, 6
 
           ! Apply the new step
           call VecAXPY(wVec, -lambda, deltaW, ierr)
@@ -4118,9 +4186,8 @@ contains
 
   end subroutine ANKStep
   
-  subroutine saveVecToDebugSpace(in_vec, rvec)
+  subroutine saveStateToDebugSpace(in_vec, rvec)
    use constants
-   use blockPointers, only : nDom, il, jl, kl, scratch
    use blockPointers, only : nDom, il, jl, kl, debug_space
    use inputTimeSpectral, only : nTimeIntervalsSpectral
    use flowVarRefState, only : nwf, nt1, nt2, winf
@@ -4140,8 +4207,7 @@ contains
    call EChk(ierr,__FILE__,__LINE__)
 
    ii = 1
-   ! write(*,*) 'dw(231)', in_vec_pointer(231)
-   ! write(*,*) 'dw(236)', in_vec_pointer(236)
+
    do nn=1,nDom
       do sps=1,nTimeIntervalsSpectral
          call setPointers(nn,1_intType,sps)
@@ -4149,23 +4215,22 @@ contains
             do j=2,jl
                do i=2,il
                   do l=1,nwf
-                     debug_space(i,j,k,l) = in_vec_pointer(ii)
-                     if (in_vec_pointer(ii) .gt. 0.1 .or. in_vec_pointer(ii) .lt. -0.1) then 
-                        write(*,*) nn, ii, 'debug_space(',i,',',j,',',k,',',l,') = ',in_vec_pointer(ii), 'res', rvec_pointer(ii)
-                     end if
+                     ! -1 becuase we take a step in the opposite direction as deltaW
+                     debug_space(i,j,k,l) = -1*in_vec_pointer(ii)
+                     ! if (in_vec_pointer(ii) .gt. 0.1 .or. in_vec_pointer(ii) .lt. -0.1) then 
+                     !    write(*,*) nn, ii, 'debug_space(',i,',',j,',',k,',',l,') = ',in_vec_pointer(ii), 'res', rvec_pointer(ii)
+                     ! end if
                      ii = ii + 1
                   end do
+                  ! do l=nt1, nt2
+                  !    ! -1 becuase we take a step in the opposite direction as deltaW
+                  !    debug_space(i,j,k,l) = -1*in_vec_pointer(ii)
+                  !    if (in_vec_pointer(ii) .gt. 0.1 .or. in_vec_pointer(ii) .lt. -0.1) then 
+                  !       write(*,*) nn, ii, 'debug_space(',i,',',j,',',k,',',l,') = ',in_vec_pointer(ii), 'res', rvec_pointer(ii)
+                  !    end if
+                  !    ii = ii + 1
+                  ! end do
 
-                  ! Clip the turb to prevent negative turb SA
-                  ! values. This is similar to the pressure
-                  ! clip. Need to check this for other Turb models.
-                  do l=nt1, nt2
-                     debug_space(i, j, k, l) = in_vec_pointer(ii)
-                     if (in_vec_pointer(ii) .gt. 0.1 .or. in_vec_pointer(ii) .lt. -0.1) then 
-                        write(*,*) nn, ii, 'debug_space(',i,',',j,',',k,',',l,') = ',in_vec_pointer(ii),' res', rvec_pointer(ii) 
-                     end if
-                     ii = ii + 1
-                  end do
                end do
             end do
          end do
@@ -4177,7 +4242,7 @@ contains
    call VecRestoreArrayF90(rVec,rvec_pointer,ierr)
    call EChk(ierr,__FILE__,__LINE__)
 
- end subroutine saveVecToDebugSpace
+ end subroutine saveStateToDebugSpace
 
 
 end module ANKSolver
