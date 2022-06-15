@@ -2889,6 +2889,9 @@ contains
 
        call VecDestroy(baseRes, ierr)
        call EChk(ierr, __FILE__, __LINE__)
+       
+       call VecDestroy(work, ierr)
+       call EChk(ierr, __FILE__, __LINE__)
 
        call KSPDestroy(ANK_KSP, ierr)
        call EChk(ierr, __FILE__, __LINE__)
@@ -4035,15 +4038,12 @@ contains
    !  end if     
     
     
-   !  call saveStateToDebugSpace(deltaW, rVec)
+   !  call  StateToDebugSpace(deltaW, rVec)
 
     
     ! Check if the norm of the rVec is bad:
     call VecNorm(rVec, NORM_2, unsteadyNorm, ierr)
     call EChk(ierr, __FILE__, __LINE__)
-   !  if (myid == 0) then
-   !    write(*,*) 'backtrack', unsteadyNorm, lambda, unsteadyNorm_old, ANK_unstdyLSTol
-   !  end if 
 
     ! initialize this outside the ls
     LSFailed = .False.
