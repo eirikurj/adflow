@@ -1159,9 +1159,11 @@ python module libadflow
          integer(kind=inttype) parameter,optional :: costfuncmavgvz=85
          integer(kind=inttype) parameter,optional :: costfunccperror2=86
          integer(kind=inttype) parameter,optional :: costfuncaavgptot=87
-         integer(kind=inttype) parameter,optional :: costfuncaavgps=88
-         integer(kind=inttype) parameter,optional :: costfunctotheattransfer=89
-         integer(kind=inttype) parameter,optional :: costfuncheattransfercoef=90
+         integer(kind=inttype) parameter,optional :: costfuncaavgttot=88
+         integer(kind=inttype) parameter,optional :: costfuncaavgt=89
+         integer(kind=inttype) parameter,optional :: costfuncaavgps=90
+         integer(kind=inttype) parameter,optional :: costfunctotheattransfer=91
+         integer(kind=inttype) parameter,optional :: costfuncheattransfercoef=92
         end module constants
 
        module communication ! in :adflow:../../modules/communication.f90

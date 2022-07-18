@@ -343,6 +343,16 @@ contains
 &         iareaps, sps)*garead)/garea**2
         funcvalues(costfuncaavgps) = funcvalues(costfuncaavgps) + ovrnts&
 &         *globalvals(iareaps, sps)/garea
+        funcvaluesd(costfuncaavgttot) = funcvaluesd(costfuncaavgttot) + &
+&         (ovrnts*globalvalsd(iareattot, sps)*garea-ovrnts*globalvals(&
+&         iareattot, sps)*garead)/garea**2
+        funcvalues(costfuncaavgttot) = funcvalues(costfuncaavgttot) + &
+&         ovrnts*globalvals(iareattot, sps)/garea
+        funcvaluesd(costfuncaavgt) = funcvaluesd(costfuncaavgt) + (&
+&         ovrnts*globalvalsd(iareat, sps)*garea-ovrnts*globalvals(iareat&
+&         , sps)*garead)/garea**2
+        funcvalues(costfuncaavgt) = funcvalues(costfuncaavgt) + ovrnts*&
+&         globalvals(iareat, sps)/garea
       end if
       funcvaluesd(costfuncmdot) = funcvaluesd(costfuncmdot) + ovrnts*&
 &       mflowd
@@ -741,6 +751,10 @@ contains
 &         ovrnts*globalvals(iareaptot, sps)/garea
         funcvalues(costfuncaavgps) = funcvalues(costfuncaavgps) + ovrnts&
 &         *globalvals(iareaps, sps)/garea
+        funcvalues(costfuncaavgttot) = funcvalues(costfuncaavgttot) + &
+&         ovrnts*globalvals(iareattot, sps)/garea
+        funcvalues(costfuncaavgt) = funcvalues(costfuncaavgt) + ovrnts*&
+&         globalvals(iareat, sps)/garea
       end if
       funcvalues(costfuncmdot) = funcvalues(costfuncmdot) + ovrnts*mflow
       funcvalues(costfuncmavgptot) = funcvalues(costfuncmavgptot) + &
@@ -1835,8 +1849,8 @@ contains
     real(kind=realtype) :: massflowrated, mass_ptotd, mass_ttotd, &
 &   mass_psd, mass_mnd, mass_ad, mass_rhod, mass_vxd, mass_vyd, mass_vzd&
 &   , mass_nxd, mass_nyd, mass_nzd
-    real(kind=realtype) :: area_ptot, area_ps
-    real(kind=realtype) :: area_ptotd, area_psd
+    real(kind=realtype) :: area_ptot, area_ps, area_t, area_ttot
+    real(kind=realtype) :: area_ptotd, area_psd, area_td, area_ttotd
     real(kind=realtype) :: mredim
     real(kind=realtype) :: mredimd
     integer(kind=inttype) :: i, j, ii, blk
@@ -1847,8 +1861,8 @@ contains
 &   vzm, fx, fy, fz, u, v, w
     real(kind=realtype) :: vmagd, vnmd, vxmd, vymd, vzmd, fxd, fyd, fzd&
 &   , wd
-    real(kind=realtype) :: pm, ptot, ttot, rhom, gammam, am
-    real(kind=realtype) :: pmd, ptotd, ttotd, rhomd, amd
+    real(kind=realtype) :: pm, ptot, ttot, tm, rhom, gammam, am
+    real(kind=realtype) :: pmd, ptotd, ttotd, tmd, rhomd, amd
     real(kind=realtype) :: area, cellarea, overcellarea
     real(kind=realtype) :: aread, cellaread, overcellaread
     real(kind=realtype), dimension(3) :: fp, mp, fmom, mmom, refpoint, &
@@ -1921,9 +1935,12 @@ contains
     mass_ny = zero
     mass_nz = zero
     area_ptot = zero
+    area_ttot = zero
+    area_t = zero
     area_ps = zero
     mass_ptotd = 0.0_8
     aread = 0.0_8
+    area_td = 0.0_8
     mmomd = 0.0_8
     mass_vxd = 0.0_8
     mass_vyd = 0.0_8
@@ -1945,6 +1962,7 @@ contains
     ttotd = 0.0_8
     massflowrated = 0.0_8
     mpd = 0.0_8
+    area_ttotd = 0.0_8
     do ii=0,(bcdata(mm)%jnend-bcdata(mm)%jnbeg)*(bcdata(mm)%inend-bcdata&
 &       (mm)%inbeg)-1
       i = mod(ii, bcdata(mm)%inend - bcdata(mm)%inbeg) + bcdata(mm)%&
@@ -1970,6 +1988,8 @@ contains
       rhom = half*(ww1(i, j, irho)+ww2(i, j, irho))
       pmd = half*(pp1d(i, j)+pp2d(i, j))
       pm = half*(pp1(i, j)+pp2(i, j))
+      tmd = (pmd*rgas*rhom-pm*(rgasd*rhom+rgas*rhomd))/(rgas*rhom)**2
+      tm = pm/(rgas*rhom)
       gammam = half*(gamma1(i, j)+gamma2(i, j))
       vnmd = vxmd*ssi(i, j, 1) + vxm*ssid(i, j, 1) + vymd*ssi(i, j, 2) +&
 &       vym*ssid(i, j, 2) + vzmd*ssi(i, j, 3) + vzm*ssid(i, j, 3)
@@ -2040,6 +2060,12 @@ contains
       area_ptotd = area_ptotd + blk*((ptotd*pref+ptot*prefd)*cellarea+&
 &       ptot*pref*cellaread)
       area_ptot = area_ptot + ptot*pref*cellarea*blk
+      area_ttotd = area_ttotd + blk*((ttotd*tref+ttot*trefd)*cellarea+&
+&       ttot*tref*cellaread)
+      area_ttot = area_ttot + ttot*tref*cellarea*blk
+      area_td = area_td + blk*((tmd*tref+tm*trefd)*cellarea+tm*tref*&
+&       cellaread)
+      area_t = area_t + tm*tref*cellarea*blk
       area_psd = area_psd + blk*(pmd*cellarea+pm*cellaread)
       area_ps = area_ps + pm*cellarea*blk
       sfacecoordrefd(1) = sf*(ssid(i, j, 1)*overcellarea+ssi(i, j, 1)*&
@@ -2187,6 +2213,10 @@ contains
 &     mmom
     localvaluesd(iareaptot) = localvaluesd(iareaptot) + area_ptotd
     localvalues(iareaptot) = localvalues(iareaptot) + area_ptot
+    localvaluesd(iareattot) = localvaluesd(iareattot) + area_ttotd
+    localvalues(iareattot) = localvalues(iareattot) + area_ttot
+    localvaluesd(iareat) = localvaluesd(iareat) + area_td
+    localvalues(iareat) = localvalues(iareat) + area_t
     localvaluesd(iareaps) = localvaluesd(iareaps) + area_psd
     localvalues(iareaps) = localvalues(iareaps) + area_ps
     localvaluesd(imassvx) = localvaluesd(imassvx) + mass_vxd
@@ -2223,14 +2253,14 @@ contains
     real(kind=realtype) :: massflowrate, mass_ptot, mass_ttot, mass_ps, &
 &   mass_mn, mass_a, mass_rho, mass_vx, mass_vy, mass_vz, mass_nx, &
 &   mass_ny, mass_nz
-    real(kind=realtype) :: area_ptot, area_ps
+    real(kind=realtype) :: area_ptot, area_ps, area_t, area_ttot
     real(kind=realtype) :: mredim
     integer(kind=inttype) :: i, j, ii, blk
     real(kind=realtype) :: internalflowfact, inflowfact, fact, xc, yc, &
 &   zc, mx, my, mz
     real(kind=realtype) :: sf, vmag, vnm, vnmfreestreamref, vxm, vym, &
 &   vzm, fx, fy, fz, u, v, w
-    real(kind=realtype) :: pm, ptot, ttot, rhom, gammam, am
+    real(kind=realtype) :: pm, ptot, ttot, tm, rhom, gammam, am
     real(kind=realtype) :: area, cellarea, overcellarea
     real(kind=realtype), dimension(3) :: fp, mp, fmom, mmom, refpoint, &
 &   sfacecoordref
@@ -2288,6 +2318,8 @@ contains
     mass_ny = zero
     mass_nz = zero
     area_ptot = zero
+    area_ttot = zero
+    area_t = zero
     area_ps = zero
     do ii=0,(bcdata(mm)%jnend-bcdata(mm)%jnbeg)*(bcdata(mm)%inend-bcdata&
 &       (mm)%inbeg)-1
@@ -2309,6 +2341,7 @@ contains
       vzm = half*(ww1(i, j, ivz)+ww2(i, j, ivz))
       rhom = half*(ww1(i, j, irho)+ww2(i, j, irho))
       pm = half*(pp1(i, j)+pp2(i, j))
+      tm = pm/(rgas*rhom)
       gammam = half*(gamma1(i, j)+gamma2(i, j))
       vnm = vxm*ssi(i, j, 1) + vym*ssi(i, j, 2) + vzm*ssi(i, j, 3) - sf
       arg1 = vxm**2 + vym**2 + vzm**2
@@ -2334,6 +2367,8 @@ contains
       mass_ps = mass_ps + pm*massflowratelocal
       mass_mn = mass_mn + mnm*massflowratelocal
       area_ptot = area_ptot + ptot*pref*cellarea*blk
+      area_ttot = area_ttot + ttot*tref*cellarea*blk
+      area_t = area_t + tm*tref*cellarea*blk
       area_ps = area_ps + pm*cellarea*blk
       sfacecoordref(1) = sf*ssi(i, j, 1)*overcellarea
       sfacecoordref(2) = sf*ssi(i, j, 2)*overcellarea
@@ -2402,6 +2437,8 @@ contains
     localvalues(iflowmm:iflowmm+2) = localvalues(iflowmm:iflowmm+2) + &
 &     mmom
     localvalues(iareaptot) = localvalues(iareaptot) + area_ptot
+    localvalues(iareattot) = localvalues(iareattot) + area_ttot
+    localvalues(iareat) = localvalues(iareat) + area_t
     localvalues(iareaps) = localvalues(iareaps) + area_ps
     localvalues(imassvx) = localvalues(imassvx) + mass_vx
     localvalues(imassvy) = localvalues(imassvy) + mass_vy

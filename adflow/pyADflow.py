@@ -6304,6 +6304,8 @@ class ADFLOW(AeroSolver):
             "cavitation": self.adflow.constants.costfunccavitation,
             "mdot": self.adflow.constants.costfuncmdot,
             "mavgptot": self.adflow.constants.costfuncmavgptot,
+            "aavgttot": self.adflow.constants.costfuncaavgttot,
+            "aavgt": self.adflow.constants.costfuncaavgt,
             "aavgptot": self.adflow.constants.costfuncaavgptot,
             "aavgps": self.adflow.constants.costfuncaavgps,
             "mavgttot": self.adflow.constants.costfuncmavgttot,

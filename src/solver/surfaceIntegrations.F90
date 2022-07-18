@@ -163,6 +163,8 @@ contains
           ! area averaged pressure
           funcValues(costFuncAAvgPTot) = funcValues(costFuncAAvgPTot) + ovrNTS*globalVals(iAreaPTot, sps) / gArea
           funcValues(costFuncAAvgPs) = funcValues(costFuncAAvgPs) + ovrNTS*globalVals(iAreaPs, sps) / gArea
+          funcValues(costFuncAAvgTTot) = funcValues(costFuncAAvgTTot) + ovrNTS*globalVals(iAreaTtot, sps) / gArea
+          funcValues(costFuncAAvgT) = funcValues(costFuncAAvgT) + ovrNTS*globalVals(iAreaT, sps) / gArea
        end if
 
        funcValues(costFuncMdot)      = funcValues(costFuncMdot) + ovrNTS*mFlow
@@ -748,12 +750,12 @@ contains
     ! Local variables
     real(kind=realType) ::  massFlowRate, mass_Ptot, mass_Ttot, mass_Ps, mass_MN, mass_a, mass_rho, &
                             mass_Vx, mass_Vy, mass_Vz, mass_nx, mass_ny, mass_nz
-    real(kind=realType) ::  area_Ptot, area_Ps
+    real(kind=realType) ::  area_Ptot, area_Ps, area_T, area_Ttot
     real(kind=realType) ::  mReDim
     integer(kind=intType) :: i, j, ii, blk
     real(kind=realType) :: internalFlowFact, inFlowFact, fact, xc, yc, zc, mx, my, mz
     real(kind=realType) :: sF, vmag, vnm, vnmFreeStreamRef, vxm, vym, vzm, Fx, Fy, Fz, u, v, w
-    real(kind=realType) :: pm, Ptot, Ttot, rhom, gammam, am
+    real(kind=realType) :: pm, Ptot, Ttot, tm, rhom, gammam, am
     real(kind=realType) :: area, cellArea, overCellArea
     real(kind=realType), dimension(3) :: Fp, Mp, FMom, MMom, refPoint, sFaceCoordRef
     real(kind=realType) :: MNm, massFlowRateLocal
@@ -818,6 +820,8 @@ contains
     mass_nz = zero
 
     area_Ptot = zero
+    area_Ttot = zero
+    area_T = zero
     area_Ps   = zero
 
     !$AD II-LOOP
@@ -839,6 +843,7 @@ contains
       vzm = half*(ww1(i,j,ivz) + ww2(i,j,ivz))
       rhom = half*(ww1(i,j,irho) + ww2(i,j,irho))
       pm = half*(pp1(i,j)+ pp2(i,j))
+      tm = pm/(Rgas*rhom)
       gammam = half*(gamma1(i,j) + gamma2(i,j))
 
       vnm = vxm*ssi(i,j,1) + vym*ssi(i,j,2) + vzm*ssi(i,j,3)  - sF
@@ -871,6 +876,8 @@ contains
       mass_MN = mass_MN + MNm*massFlowRateLocal
 
       area_pTot = area_pTot + Ptot * Pref * cellArea * blk
+      area_TTot = area_TTot + Ttot * Tref * cellArea * blk
+      area_T = area_T + tm * Tref * cellArea * blk
       area_Ps = area_Ps + pm * cellArea * blk
 
       sFaceCoordRef(1) = sF * ssi(i,j,1)*overCellArea
@@ -954,7 +961,9 @@ contains
     localValues(iFlowMm:iFlowMm+2)   = localValues(iFlowMm:iFlowMm+2) + MMom
 
     localValues(iAreaPTot) = localValues(iAreaPTot) + area_pTot
-    localValues(iAreaPs) = localValues(iAreaPs) + area_Ps
+    localValues(iAreaTTot) = localValues(iAreaTTot) + area_tTot
+    localValues(iAreaT)    = localValues(iAreaT) + area_t
+    localValues(iAreaPs)   = localValues(iAreaPs) + area_Ps
 
     localValues(iMassVx)   = localValues(iMassVx)   + mass_Vx
     localValues(iMassVy)   = localValues(iMassVy)   + mass_Vy

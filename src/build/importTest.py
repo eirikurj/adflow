@@ -12,4 +12,4 @@ except Exception as err:
     sys.exit(1)
 # end try
 
-print("Module %s was successfully imported." % name)
+print("\033[92mModule %s was successfully imported.\033[0m" % name)
