@@ -70,7 +70,7 @@ contains
 
     ! Working Variables
     integer(kind=intType) :: ierr, nn, sps, fSize, iRegion
-    real(kind=realType), dimension(nSections) :: t
+    real(kind=realType), dimension(nSections) :: time
     real(kind=realType) :: dummyReal
 
     if (useSpatial) then
@@ -102,9 +102,7 @@ contains
 
        do sps=1, nTimeIntervalsSpectral
           ! Update overset connectivity if necessary
-          if (oversetPresent .and. &
-               (oversetUpdateMode == updateFast .or. &
-               oversetUpdateMode == updateFull)) then
+          if (oversetPresent .and. oversetUpdateMode == updateFast) then
              call updateOversetConnectivity(1_intType, sps)
           end if
        end do
@@ -275,7 +273,7 @@ contains
 
     use constants
     use diffsizes, only :  ISIZE1OFDrfbcdata, ISIZE1OFDrfviscsubface
-    use communication, only : adflow_comm_world
+    use communication, only : adflow_comm_world, myID
     use iteration, only : currentLevel
     use BCExtra_d, only : applyAllBC_Block_d
     use inputAdjoint,  only : viscPC
@@ -293,14 +291,15 @@ contains
     use fluxes_d, only :inviscidDissFluxScalarApprox_d, inviscidDissFluxMatrixApprox_d, &
          inviscidUpwindFlux_d, inviscidDissFluxScalar_d, inviscidDissFluxMatrix_d, &
          inviscidUpwindFlux_d, viscousFlux_d, viscousFluxApprox_d, inviscidCentralFlux_d
-    use residuals_d, only : sourceTerms_block_d
+    use residuals_d, only : sourceTerms_block_d, initres_block_d
     use adjointPETSc, only : x_like
     use haloExchange, only : whalo2_d, exchangeCoor_d, exchangeCoor, whalo2
     use wallDistance_d, only : updateWallDistancesQuickly_d
     use wallDistanceData, only : xSurfVec, xSurfVecd, xSurf, xSurfd, wallScatter
     use flowutils_d, only : computePressureSimple_d, computeLamViscosity_d, &
          computeSpeedOfSoundSquared_d, allNodalGradients_d, adjustInflowAngle_d
-    use solverutils_d, only : timeStep_Block_d
+    use solverutils_d, only : timeStep_Block_d, gridvelocitiesfinelevel_block_d, slipvelocitiesfinelevel_block_d, &
+        normalvelocities_block_d
     use turbbcroutines_d, only : applyAllTurbBCthisblock_d,  bcTurbTreatment_d
     use initializeflow_d, only : referenceState_d
     use surfaceIntegrations, only : getSolution_d
@@ -349,10 +348,12 @@ contains
     real(kind=realType), dimension(:, :), allocatable :: funcValues
 
     integer(kind=intType) :: ierr, nn, sps, mm,i,j,k, l, fSize, ii, jj, iRegion
-    integer(kind=intType) :: iGroup
 
-    real(kind=realType), dimension(nSections) :: t
+    real(kind=realType), dimension(nSections) :: time
     real(kind=realType) :: dummyReal, dummyReald
+
+    logical :: useOldCoor ! for adjointextra_d() functions
+    useOldCoor = .FALSE.
 
     fSize = size(forcesDot, 2)
     
@@ -408,11 +409,14 @@ contains
 
     do sps=1, nTimeIntervalsSpectral
        ! Update overset connectivity if necessary
-       if (oversetPresent .and. &
-            (oversetUpdateMode == updateFast .or. &
-            oversetUpdateMode == updateFull)) then
-          print *,'Full overset update derivatives not implemented'
-          !call updateOversetConnectivity_d(1_intType, sps)
+       if (oversetPresent) then
+          if (oversetUpdateMode == updateFast) then
+             call updateOversetConnectivity_d(1_intType, sps)
+          else if (oversetUpdateMode == updateFull) then
+             if (myID == 0) then
+                print *,'Full overset update derivatives not implemented'
+             end if
+          end if
        end if
     end do
 
@@ -462,6 +466,22 @@ contains
           call volume_block_d()
           call metric_block_d()
           call boundaryNormals_d()
+
+          time = timeunsteadyrestart
+          if (equationmode .eq. timespectral) then
+             do mm=1,nsections
+                time(mm) = time(mm) + (sps-1)*sections(mm)%timeperiod/real(&
+                     &         ntimeintervalsspectral, realtype)
+             end do
+          end if
+
+          call gridvelocitiesfinelevel_block_d(useoldcoor, time, sps, nn)
+          ! required for ts
+          call normalvelocities_block_d(sps)
+          ! required for ts
+          call slipvelocitiesfinelevel_block_d(useoldcoor, time, sps, nn)
+
+
           if (equations == RANSEquations .and. useApproxWallDistance) then
              call updateWallDistancesQuickly_d(nn, 1, sps)
           end if
@@ -515,10 +535,9 @@ contains
           call setPointers_d(nn, 1, sps)
           ISIZE1OFDrfbcdata = nBocos
           ISIZE1OFDrfviscsubface = nViscBocos
-
+          
           ! initalize the residuals for this block 
-          dw = zero
-          dwd = zero
+          call initRes_block_d(1, nw, nn, sps)
           
           ! Compute any source terms
           do iRegion=1, nActuatorRegions
@@ -653,7 +672,8 @@ contains
     use adjointExtra_b, only : xhalo_block_b, volume_block_b, metric_block_b, boundarynormals_b
     use flowutils_b, only : computePressureSimple_b, computeLamViscosity_b, &
          computeSpeedOfSoundSquared_b, allNodalGradients_b, adjustInflowAngle_b
-    use solverutils_b, only : timeStep_Block_b
+    use solverutils_b, only : timeStep_Block_b, gridvelocitiesfinelevel_block_b, slipvelocitiesfinelevel_block_b, &
+         normalvelocities_block_b
     use turbbcroutines_b, only : applyAllTurbBCthisblock_b,  bcTurbTreatment_b
     use turbbcroutines, only : applyAllTurbBCthisblock,  bcTurbTreatment
     use initializeflow_b, only : referenceState_b
@@ -661,7 +681,7 @@ contains
     use sa_b, only : saSource_b, saViscous_b, saResScale_b, qq
     use turbutils_b, only : turbAdvection_b, computeEddyViscosity_b
     use turbutils, only :  computeEddyViscosity
-    use residuals_b, only : sourceTerms_block_b
+    use residuals_b, only : sourceTerms_block_b, initRes_block_b
     use fluxes_b, only :inviscidUpwindFlux_b, inviscidDissFluxScalar_b, &
          inviscidDissFluxMatrix_b, viscousFlux_b, inviscidCentralFlux_b
     use BCExtra_b, only : applyAllBC_Block_b
@@ -673,6 +693,9 @@ contains
     use BCRoutines, only : applyAllBC_block
     use actuatorRegionData, only : nActuatorRegions
     use actuatorRegion, only : setActuatorData_b
+    use monitor, only : timeUnsteadyRestart
+    use section, only: sections,nSections ! used in time-declaration
+
 #include <petsc/finclude/petsc.h>
     use petsc
     implicit none
@@ -714,6 +737,9 @@ contains
     logical ::resetToRans
     real(kind=realType), dimension(:, :, :), allocatable :: forces
     real(kind=realType), dimension(:, :, :), allocatable :: heatfluxes
+    real(kind=realType), dimension(nSections) :: time
+    logical :: useOldCoor ! for solverutils_b() functions
+    useOldCoor = .FALSE.
 
     fSize = size(forcesBar, 2)
     allocate(forces(3, fSize, nTimeIntervalsSpectral))
@@ -861,6 +887,9 @@ contains
                 call saViscous_b
                 !call unsteadyTurbTerm_b(1_intType, 1_intType, itu1-1, qq)
                 call turbAdvection_b(1_intType, 1_intType, itu1-1, qq)
+                ! turbAdvection_b zeros the faceid. This should be ok since
+                ! it presumably is the last call in master using faceid and
+                ! therefore should be the first call in master_b to use faceid
                 call saSource_b
              end select
 
@@ -875,8 +904,7 @@ contains
              call sourceTerms_block_b(nn, .True. , iRegion, dummyReal, dummyReald)
           end do
 
-          ! Initres_b should be called here. For steady just zero:
-          dwd = zero
+          call initRes_block_b(1, nw, nn, sps)
        end do domainLoop1
     end do spsLoop1
 
@@ -945,6 +973,20 @@ contains
              call updateWallDistancesQuickly_b(nn, 1, sps)
           end if
 
+          ! Here we insert the functions related to
+          ! rotational (mesh movement) setup
+          time = timeunsteadyrestart
+          if (equationmode .eq. timespectral) then
+             do mm=1,nsections
+                time(mm) = time(mm) + (sps-1)*sections(mm)%timeperiod/real(&
+                     &         ntimeintervalsspectral, realtype)
+             end do
+          end if
+
+          call slipvelocitiesfinelevel_block_b(useoldcoor, time, sps, nn)
+          call normalvelocities_block_b(sps)
+          call gridvelocitiesfinelevel_block_b(useoldcoor, time, sps, nn)
+
           call boundaryNormals_b
           call metric_block_b
           call volume_block_b
@@ -989,11 +1031,14 @@ contains
 
     do sps=1, nTimeIntervalsSpectral
        ! Update overset connectivity if necessary
-       if (oversetPresent .and. &
-            (oversetUpdateMode == updateFast .or. &
-            oversetUpdateMode == updateFull)) then
-          print *,'Full overset update derivatives not implemented'
-          !call updateOversetConnectivity_b(1_intType, sps)
+       if (oversetPresent) then
+          if (oversetUpdateMode == updateFast) then
+             call updateOversetConnectivity_b(1_intType, sps)
+          else if (oversetUpdateMode == updateFull) then
+             if (myID == 0) then
+                print *,'Full overset update derivatives not implemented'
+             end if
+          end if
        end if
     end do
     ! Now the adjoint of the coordinate exhcange
@@ -1106,7 +1151,7 @@ contains
          inviscidDissFluxMatrix_fast_b, viscousFlux_fast_b, inviscidCentralFlux_fast_b
     use solverutils_fast_b, only : timeStep_block_fast_b
     use flowutils_fast_b, only : allnodalgradients_fast_b
-    use residuals_fast_b, only : sourceTerms_block_fast_b
+    use residuals_fast_b, only : sourceTerms_block_fast_b, initRes_block_fast_b
     use oversetData, only : oversetPresent
     use bcroutines, only : applyallbc_block
     use actuatorRegionData, only : nActuatorRegions
@@ -1239,8 +1284,7 @@ contains
              call sourceTerms_block_fast_b(nn, .True. , iRegion, dummyReal)
           end do
 
-          ! Initres_b should be called here. For steady just zero:
-          dwd = zero
+          call initRes_block_fast_b(1, nw, nn, sps)
        end do domainLoop1
     end do spsLoop1
 
@@ -1348,6 +1392,7 @@ contains
     call computePressureSimple(.True.)
     call computeLamViscosity(.True.)
     call computeEddyViscosity(.True.)
+
 
     ! Make sure to call the turb BC's first incase we need to
     ! correct for K
