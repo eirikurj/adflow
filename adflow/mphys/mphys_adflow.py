@@ -18,6 +18,7 @@ class ADflowMesh(ExplicitComponent):
 
     def initialize(self):
         self.options.declare("aero_solver", recordable=False)
+        self.options.declare("surface_groups", default=None)
 
     def setup(self):
 
@@ -33,12 +34,19 @@ class ADflowMesh(ExplicitComponent):
             desc="initial aerodynamic surface node coordinates",
             tags=["mphys_coordinates"],
         )
+        
+        self.surface_coords = {}
+        for surface_group in self.options["surface_groups"]:
+            coords = self.aero_solver.getSurfaceCoordinates(groupName=surface_group).flatten(order="C")
+            self.surface_coords[surface_group] = coords
+            self.add_output(f"x_aero_{surface_group}0", val=coords, desc=f"surface points for {surface_group}")
+
 
     def mphys_add_coordinate_input(self):
         self.add_input(
             "x_aero0_points", distributed=True, shape_by_conn=True, desc="aerodynamic surface with geom changes"
         )
-
+        
         # return the promoted name and coordinates
         return "x_aero0_points", self.x_a0
 
@@ -120,14 +128,101 @@ class ADflowMesh(ExplicitComponent):
             outputs["x_aero0"] = inputs["x_aero0_points"]
         else:
             outputs["x_aero0"] = self.x_a0
+            
+            for surface_group in self.options["surface_groups"]:
+                outputs[f"x_aero_{surface_group}0"] = self.surface_coords[surface_group]
+
 
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+        if self.options["surface_groups"]:
+            raise NotImplementedError("compute_jacvec_product not implemented for surface groups")
+        
         if mode == "fwd":
             if "x_aero0_points" in d_inputs:
                 d_outputs["x_aero0"] += d_inputs["x_aero0_points"]
         elif mode == "rev":
             if "x_aero0_points" in d_inputs:
                 d_inputs["x_aero0_points"] += d_outputs["x_aero0"]
+
+
+class AdflowSurfaceMapper(ExplicitComponent):
+    """
+    Component to get the partitioned surface mesh coordinates of different families groups
+
+    """
+
+    def initialize(self):
+        # self.options.declare('solver_options', default= {})
+
+        self.options.declare("input_family_group", default="allWalls")
+        self.options.declare("output_family_groups", default=["allWalls"])
+
+
+        self.options.declare("aero_solver", recordable=False)
+
+    def setup(self):
+
+        self.solver = self.options["aero_solver"]
+
+        in_famGroup = self.options["input_family_group"]
+        coords = self.solver.getSurfaceCoordinates(groupName=in_famGroup).flatten(order="C")
+        self.add_input("x_aero_%s" % (in_famGroup), val=coords, desc="surface points for %s" % (in_famGroup))
+
+        for famGroup in self.options["output_family_groups"]:
+            coords = self.solver.getSurfaceCoordinates(groupName=famGroup).flatten(order="C")
+            self.add_output("x_aero_%s" % (famGroup), val=coords, desc="surface points for %s" % (famGroup))
+
+    def compute(self, inputs, outputs):
+
+        in_famGroup = self.options["input_family_group"]
+        in_vec = inputs["x_aero_%s" % (in_famGroup)]
+        in_vec = in_vec.reshape(in_vec.size // 3, 3)
+        # loop over output families add do the mapping for each
+        for out_famGroup in self.options["output_family_groups"]:
+
+            out_vec = outputs["x_aero_%s" % (out_famGroup)]
+            out_vec = out_vec.reshape(out_vec.size // 3, 3)
+
+            if self.solver.dtype == "D":
+                in_vec = np.array(in_vec, dtype=self.solver.dtype)
+                out_vec = np.array(out_vec, dtype=self.solver.dtype)
+
+            out_vec = self.solver.mapVector(in_vec, in_famGroup, out_famGroup, out_vec)
+            outputs["x_aero_%s" % (out_famGroup)] = out_vec.flatten(order="C")
+
+    def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+
+        in_famGroup = self.options["input_family_group"]
+        in_var_name = "x_aero_%s" % (in_famGroup)
+
+        if mode == "fwd":
+            if in_var_name in d_inputs:
+                in_vec = d_inputs[in_var_name]
+                in_vec = in_vec.reshape(in_vec.size // 3, 3)
+
+                for out_famGroup in self.options["output_family_groups"]:
+                    if "x_aero_%s" % (out_famGroup) in d_outputs:
+                        out_vec = d_outputs["x_aero_%s" % (out_famGroup)]
+                        out_vec = out_vec.reshape(out_vec.size // 3, 3)
+                        out_vec = self.solver.mapVector(in_vec, in_famGroup, out_famGroup, out_vec)
+
+                        d_outputs["x_aero_%s" % (out_famGroup)] += out_vec.flatten(order="C")
+
+        elif mode == "rev":
+            if in_var_name in d_inputs:
+                for out_famGroup in self.options["output_family_groups"]:
+                    if "x_aero_%s" % (out_famGroup) in d_outputs:
+                        out_vec = d_outputs["x_aero_%s" % (out_famGroup)]
+                        out_vec = out_vec.reshape(out_vec.size // 3, 3)
+
+                        in_vec = np.zeros(d_inputs["x_aero_%s" % (in_famGroup)].shape)
+                        in_vec = in_vec.reshape(in_vec.size // 3, 3)
+
+                        # reverse the mapping!
+                        self.solver.mapVector(out_vec, out_famGroup, in_famGroup, in_vec)
+
+                        d_inputs[in_var_name] += in_vec.flatten(order="C")
+
 
 
 class ADflowWarper(ExplicitComponent):
@@ -261,7 +356,25 @@ class ADflowSolver(ImplicitComponent):
             )
             if self.comm.rank == 0:
                 print("%s (%s)" % (name, kwargs["units"]))
-
+    
+    def mphys_add_BCDVs(self, BCVar, famGroup, dv_name, value=None, coupling=False):
+        if value is None:
+            bc_data = self.solver.getBCData([famGroup])
+            bc_arr = bc_data.getBCArraysFlatData(BCVar, familyGroup=famGroup)
+            value = bc_arr
+            is_distributed = True
+        else: 
+            is_distributed = False
+    
+        self.ap.setBCVar(BCVar, value, famGroup)
+        self.ap.addDV(BCVar, familyGroup=famGroup, name=dv_name)
+        
+        if coupling:
+            tags = ["mphys_coupling"]
+        else:
+            tags = ["mphys_input"]
+        self.add_input(dv_name, distributed=is_distributed, val=value,  tags=tags)
+    
     def _set_states(self, outputs):
         self.solver.setStates(outputs["adflow_states"])
 
@@ -623,11 +736,9 @@ class AdflowHeatTransfer(ExplicitComponent):
             distributed=True,
             val=np.ones(local_nodes) * -499,
             shape=local_nodes,
-            units="W/m**2",
             tags=["mphys_coupling"],
         )
 
-        # self.declare_partials(of='f_aero', wrt='*')
 
     def _set_ap(self, inputs):
         tmp = {}
@@ -653,6 +764,24 @@ class AdflowHeatTransfer(ExplicitComponent):
             if self.comm.rank == 0:
                 print(name)
 
+    def mphys_add_BCDVs(self, BCVar, famGroup, dv_name, value=None, coupling=False):
+        if value is None:
+            bc_data = self.solver.getBCData([famGroup])
+            bc_arr = bc_data.getBCArraysFlatData(BCVar, familyGroup=famGroup)
+            value = bc_arr
+            is_distributed = True
+        else: 
+            is_distributed = False
+    
+        self.ap.setBCVar(BCVar, value, famGroup)
+        self.ap.addDV(BCVar, familyGroup=famGroup, name=dv_name)
+        
+        if coupling:
+            tags = ["mphys_coupling"]
+        else:
+            tags = ["mphys_input"]
+        self.add_input(dv_name, distributed=is_distributed, val=value,  tags=tags)
+    
     def _set_states(self, inputs):
         self.solver.setStates(inputs["adflow_states"])
 
@@ -664,22 +793,20 @@ class AdflowHeatTransfer(ExplicitComponent):
         self._set_ap(inputs)
 
         # Set the warped mesh
-        # solver.mesh.setSolverGrid(inputs['adflow_vol_coords'])
-        # ^ This call does not exist. Assume the mesh hasn't changed since the last call to the warping comp for now
-        # TODO we must fix this. we need to put in the modified volume coordinates
+        # self.solver.adflow.warping.setgrid(inputs["x_g"])
+        # self.solver._updateGeomInfo = True
+        # self.solver.updateGeometryInfo(warpMesh=False)
+        self._set_states(inputs)
+        
+        outputs["q_convect"] = self.solver.getHeatXferRates().flatten(order="C")
 
-        #
-        # self._set_states(inputs)
-
-        outputs["q_convect"] = solver.getHeatFluxes().flatten(order="C")
-        # print()
 
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
 
         solver = self.solver
-        ap = self.options["ap"]
+        ap = self.ap
 
-        self._set_ap(inputs)
+        self._set_ap(inputs, print_dict=False)
 
         # check if we changed APs, then we have to do a bunch of updates
         if ap != solver.curAP:
@@ -704,27 +831,29 @@ class AdflowHeatTransfer(ExplicitComponent):
                     xVDot = None
                 if not (xVDot is None and wDot is None):
                     dhfdot = solver.computeJacobianVectorProductFwd(xDvDot=xDvDot, xVDot=xVDot, wDot=wDot, hfDeriv=True)
-                    dhfdot_map = np.zeros((dhfdot.size, 3))
-                    dhfdot_map[:, 0] = dhfdot.flatten()
-                    dhfdot_map = self.solver.mapVector(
-                        dhfdot_map, self.solver.allWallsGroup, self.solver.allIsothermalWallsGroup
-                    )
-                    dhfdot = dhfdot_map[:, 0]
-                    d_outputs["q_convect"] += dhfdot
+                    
+                    tmp = np.zeros((dhfdot.size, 3))
+                    hftmp[:, 0] = dhfdot
+
+                    dhfdot = self.solver.mapVector(dhfdot, self.solver.allWallsGroup, self.solver.allIsothermalWallsGroup)
+                    dhfdot = dhfdot[:, 0]
+                    
+                    d_outputs["q_convect"] += dhfdot.flatten()
 
         elif mode == "rev":
             if "q_convect" in d_outputs:
-                hfBar = d_outputs["q_convect"]
+                hf = d_outputs["heatflux"]
 
-                hfBar_map = np.zeros((hfBar.size, 3))
-                hfBar_map[:, 0] = hfBar.flatten()
-                hfBar_map = self.solver.mapVector(
-                    hfBar_map, self.solver.allIsothermalWallsGroup, self.solver.allWallsGroup
-                )
-                hfBar = hfBar_map[:, 0]
+                # make the vector into the look like a coordinate vector
+                hfBar = np.zeros((hf.size, 3))
+                hfBar[:, 0] = hf
+
+                hfBar = self.solver.mapVector(hfBar, self.solver.allIsothermalWallsGroup, self.solver.allWallsGroup)
+                hfBar = hfBar[:, 0]
+                
 
                 wBar, xVBar, xDVBar = solver.computeJacobianVectorProductBwd(
-                    hfBar=hfBar, wDeriv=True, xVDeriv=True, xDvDeriv=True
+                    hfBar=hfBar, wDeriv=True, xVDeriv=True, xDvDeriv=False, xDvDerivAero=True
                 )
 
                 if "adflow_vol_coords" in d_inputs:
@@ -841,6 +970,25 @@ class ADflowFunctions(ExplicitComponent):
 
                 self.add_output(f_name, distributed=False, shape=1, units=units, tags=["mphys_result"])
 
+        
+    def mphys_add_BCDVs(self, BCVar, famGroup, dv_name, value=None, coupling=False):
+        if value is None:
+            bc_data = self.solver.getBCData([famGroup])
+            bc_arr = bc_data.getBCArraysFlatData(BCVar, familyGroup=famGroup)
+            value = bc_arr
+            is_distributed = True
+        else: 
+            is_distributed = False
+    
+        self.ap.setBCVar(BCVar, value, famGroup)
+        self.ap.addDV(BCVar, familyGroup=famGroup, name=dv_name)
+        
+        if coupling:
+            tags = ["mphys_coupling"]
+        else:
+            tags = ["mphys_input"]
+        self.add_input(dv_name, distributed=is_distributed, val=value,  tags=tags)
+    
     # def mphys_add_prop_funcs(self, prop_funcs):
     #     save this list
     #     self.extra_funcs = prop_funcs
@@ -1013,6 +1161,7 @@ class ADflowGroup(Group):
         self.options.declare("solver", recordable=False)
         self.options.declare("struct_coupling", default=False)
         self.options.declare("prop_coupling", default=False)
+        self.options.declare("thermal_coupling", default=False)
         self.options.declare("heat_transfer", default=False)
         self.options.declare("use_warper", default=True)
         self.options.declare("restart_failed_analysis", default=False)
@@ -1024,6 +1173,7 @@ class ADflowGroup(Group):
         self.aero_solver = self.options["solver"]
         self.struct_coupling = self.options["struct_coupling"]
         self.prop_coupling = self.options["prop_coupling"]
+        self.thermal_coupling = self.options["thermal_coupling"]
         self.restart_failed_analysis = self.options["restart_failed_analysis"]
         self.err_on_convergence_fail = self.options["err_on_convergence_fail"]
 
@@ -1072,9 +1222,11 @@ class ADflowGroup(Group):
                 promotes_inputs=["adflow_vol_coords", "adflow_states"],
             )
 
-        if self.heat_transfer:
+        if self.thermal_coupling:
             self.add_subsystem(
-                "heat_xfer", AdflowHeatTransfer(aero_solver=self.aero_solver), promotes_outputs=["q_convect"]
+                "heat", AdflowHeatTransfer(aero_solver=self.aero_solver), 
+                promotes_inputs=["adflow_vol_coords", "adflow_states"],
+                promotes_outputs=["q_convect"]
             )
 
         if balance_group is not None:
@@ -1088,6 +1240,8 @@ class ADflowGroup(Group):
             self.force.set_ap(ap)
         if self.prop_coupling:
             self.prop.mphys_set_ap(ap)
+        if self.thermal_coupling:
+            self.heat.set_ap(ap)
 
         if self.heat_transfer:
             self.heat_xfer.set_ap(ap)
@@ -1103,6 +1257,34 @@ class ADflowGroup(Group):
                 self.promotes("force", inputs=[name])
             if self.prop_coupling:
                 self.promotes("prop", inputs=[name])
+            if self.thermal_coupling:
+                self.promotes("heat", inputs=[name])
+    
+    def mphys_add_BCDVs(self, BCVar, famGroup, dv_name, value=None, coupling=False):
+        """
+        Add BC variables from the mesh to the aeroproblem and delcare them as design variables. 
+        """
+            
+        # set the ap, add inputs and outputs, promote?
+        self.solver.mphys_add_BCDVs(BCVar, famGroup, dv_name, value=value, coupling=coupling)
+        # self.funcs.mphys_add_BCDVs(BCVar, famGroup, dv_name, value=value, coupling)
+        if self.struct_coupling:
+            self.force.mphys_add_BCDVs(BCVar, famGroup, dv_name, value=value, coupling=coupling)
+        if self.prop_coupling:
+            self.prop.mphys_add_BCDVs(BCVar, famGroup, dv_name, value=value, coupling=coupling)
+        if self.thermal_coupling:
+            self.heat.mphys_add_BCDVs(BCVar, famGroup, dv_name, value=value, coupling=coupling)
+
+        # promote the DVs for this ap
+
+        self.promotes("solver", inputs=[dv_name])
+        # self.promotes('funcs', inputs=[dv_name])
+        if self.struct_coupling:
+            self.promotes("force", inputs=[dv_name])
+        if self.prop_coupling:
+            self.promotes("prop", inputs=[dv_name])
+        if self.thermal_coupling:
+            self.promotes("heat", inputs=[dv_name])
 
     def mphys_add_prop_funcs(self, prop_funcs):
         # this is the main routine to enable outputs from the propulsion element
@@ -1181,9 +1363,7 @@ class ADflowBuilder(Builder):
         # flag to enable propulsion coupling variables
         self.prop_coupling = False
         # flag to enable heat transfer coupling variables
-        # TODO AY-JA: Can you rename heat_transfer to thermal_coupling to be consistent with other flags?
-        self.heat_transfer = False
-
+        self.thermal_coupling = False
         # depending on the scenario we are building for, we adjust a few internal parameters:
         if scenario.lower() == "aerodynamic":
             # default
@@ -1198,7 +1378,7 @@ class ADflowBuilder(Builder):
             self.prop_coupling = True
 
         elif scenario.lower() == "aerothermal":
-            self.heat_transfer = True
+            self.thermal_coupling = True
 
         # flag to determine if we want to restart a failed solution from free stream
         self.restart_failed_analysis = restart_failed_analysis
@@ -1208,10 +1388,6 @@ class ADflowBuilder(Builder):
 
         # balance group for propulsion
         self.balance_group = balance_group
-
-        # TODO AY-JA: Check if we still need this
-        # if self.heat_transfer:
-        #     self.promotes('heat_xfer', inputs=[name])
 
     # api level method for all builders
     def initialize(self, comm):
@@ -1230,13 +1406,14 @@ class ADflowBuilder(Builder):
             use_warper=self.warp_in_solver,
             struct_coupling=self.struct_coupling,
             prop_coupling=self.prop_coupling,
+            thermal_coupling=self.thermal_coupling,
             restart_failed_analysis=self.restart_failed_analysis,
             err_on_convergence_fail=self.err_on_convergence_fail,
             balance_group=self.balance_group,
         )
         return adflow_group
 
-    def get_mesh_coordinate_subsystem(self, scenario_name=None):
+    def get_mesh_coordinate_subsystem(self, scenario_name=None, surface_groups=None):
 
         # TODO modify this so that we can move the volume mesh warping to the top level
         # we need this to do mesh warping only once for all serial points.
@@ -1249,7 +1426,7 @@ class ADflowBuilder(Builder):
         # else:
 
         # just return the component that outputs the surface mesh.
-        return ADflowMesh(aero_solver=self.solver)
+        return ADflowMesh(aero_solver=self.solver, surface_groups=surface_groups)
 
     def get_pre_coupling_subsystem(self, scenario_name=None):
         if self.warp_in_solver:
