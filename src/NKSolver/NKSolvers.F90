@@ -682,10 +682,11 @@ contains
   subroutine LSCubic(x, f, g, y, w, fnorm, ynorm, gnorm, nfevals, flag, lambda)
 
     use constants
-    use utils, only : EChk, myisnan
+    use utils, only : EChk
     use communication, only : myid
     use initializeFlow, only : setUniformFlow
     use iteration, only : totalR0
+    use genericISNAN, only : myIsNAN
     implicit none
 
     ! Input/Output
@@ -770,10 +771,10 @@ contains
     ! order of magnitude or more.
 
     hadANan = .False.
-    if (isnan(gnorm) .or. turbRes2 > 2.0*turbRes1) then
+    if (myisnan(gnorm) .or. turbRes2 > 2.0*turbRes1) then
        ! Special testing for nans
 
-       if (isnan(gnorm)) then
+       if (myisnan(gnorm)) then
           hadANan = .True.
           call setUniformFlow()
           lambda = 0.5
@@ -800,7 +801,7 @@ contains
 
           nfevals = nfevals + 1
 
-          if (isnan(gnorm)) then
+          if (myisnan(gnorm)) then
              ! Just reset the flow, adjust the step back and keep
              ! going
              call setUniformFlow()
@@ -916,7 +917,7 @@ contains
           lambda = lambdatemp
        end if
 
-       if (isnan(lambda)) then
+       if (myisnan(lambda)) then
           flag = .False.
           exit cubic_loop
        end if
@@ -1522,8 +1523,8 @@ contains
     use utils, only : setPointers
     implicit none
 
-    real(kind=realType), intent(in), dimension(iSize) :: info
     integer(kind=intType), intent(in) :: iSize
+    real(kind=realType), intent(in), dimension(iSize) :: info
     integer(kind=intType) :: nn, counter, i, j, k, l, sps
     ! Determine the size of a flat array needed to store w, P, ( and
     ! rlv, rev if necessary) with full double halos.
@@ -1568,8 +1569,8 @@ contains
 
     implicit none
 
-    real(kind=realType), intent(out), dimension(iSize) :: info
     integer(kind=intType), intent(in) :: iSize
+    real(kind=realType), intent(out), dimension(iSize) :: info
     integer(kind=intType) ::  nn, counter, i, j, k, l, sps
     ! Determine the size of a flat array needed to store w, P, ( and
     ! rlv, rev if necessary) with full double halos.
@@ -3091,8 +3092,9 @@ contains
     use blockPointers, only : ndom, il, jl, kl
     use flowVarRefState, only : nw, nwf, nt1, nt2
     use inputtimespectral, only : nTimeIntervalsSpectral
-    use utils, only : setPointers, EChk, myisnan
+    use utils, only : setPointers, EChk
     use communication, only : ADflow_comm_world
+    use genericISNAN, only : myisnan
     implicit none
 
     ! input variable
@@ -3262,7 +3264,7 @@ contains
     call EChk(ierr,__FILE__,__LINE__)
 
     ! Make sure that we did not get any NaN's in the process
-    if (isnan(lambdaL)) then
+    if (myisnan(lambdaL)) then
       lambdaL = zero
     end if
 
@@ -3288,8 +3290,9 @@ contains
     use blockPointers, only : ndom, il, jl, kl
     use flowVarRefState, only : nw, nwf, nt1,nt2
     use inputtimespectral, only : nTimeIntervalsSpectral
-    use utils, only : setPointers, EChk, myisnan
+    use utils, only : setPointers, EChk
     use communication, only : ADflow_comm_world
+    use genericISNAN, only: myIsNAN
     implicit none
 
     ! input variable
@@ -3386,7 +3389,7 @@ contains
     call EChk(ierr,__FILE__,__LINE__)
 
     ! Make sure that we did not get any NaN's in the process
-    if (isnan(lambdaL)) then
+    if (myisnan(lambdaL)) then
       lambdaL = zero
     end if
 
@@ -3417,7 +3420,7 @@ contains
     use inputTimeSpectral, only : nTimeIntervalsSpectral
     use inputDiscretization, only : approxSA, orderturb
     use iteration, only : approxTotalIts, totalR0, totalR, currentLevel
-    use utils, only : EChk, setPointers, myisnan
+    use utils, only : EChk, setPointers
     use solverUtils, only : computeUTau
     use NKSolver, only : getEwTol
     use BCRoutines, only : applyAllBC, applyAllBC_block
@@ -3426,6 +3429,7 @@ contains
     use flowVarRefState, only : nw, nwf, nt1,nt2 , kPresent, pInfCorr
     use communication
     use blockette, only : blocketteRes
+    use genericISNAN, only : myIsNAN
     implicit none
 
     ! Working Variables
@@ -3583,7 +3587,7 @@ contains
         ! initialize this outside the ls
         LSFailed = .False.
 
-        if ((unsteadyNorm > totalRTurb*ANK_unstdyLSTol .or. isnan(unsteadyNorm))) then
+        if ((unsteadyNorm > totalRTurb*ANK_unstdyLSTol .or. myisnan(unsteadyNorm))) then
             ! The unsteady residual is too high or we have a NAN. Do a
             ! backtracking line search until we get a residual that is lower.
 
@@ -3613,7 +3617,7 @@ contains
                 call VecNorm(rVecTurb, NORM_2, unsteadyNorm, ierr)
                 call EChk(ierr, __FILE__, __LINE__)
 
-                if (unsteadyNorm > totalRTurb*ANK_unstdyLSTol .or. isnan(unsteadyNorm)) then
+                if (unsteadyNorm > totalRTurb*ANK_unstdyLSTol .or. myisnan(unsteadyNorm)) then
 
                     ! Restore back to the original wVec
                     call VecAXPY(wVecTurb, lambdaTurb, deltaWTurb, ierr)
@@ -3628,7 +3632,7 @@ contains
                 end if
             end do backtrack
 
-            if (LSFailed .or. isnan(unsteadyNorm)) then
+            if (LSFailed .or. myisnan(unsteadyNorm)) then
                 ! the line search wasn't much help.
 
                 if (ANK_CFL > ANK_CFLMin) then
@@ -3698,7 +3702,7 @@ contains
     use inputTimeSpectral, only : nTimeIntervalsSpectral
     use inputDiscretization, only : lumpedDiss, approxSA, orderturb
     use iteration, only : approxTotalIts, totalR0, totalR, stepMonitor, linResMonitor, currentLevel, iterType
-    use utils, only : EChk, setPointers, myisnan
+    use utils, only : EChk, setPointers
     use turbAPI, only : turbSolveDDADI
     use solverUtils, only : computeUTau
     use adjointUtils, only : referenceShockSensor
@@ -3712,6 +3716,7 @@ contains
     use turbUtils, only : computeEddyViscosity
     use communication
     use blockette, only : blocketteRes
+    use genericISNAN, only : myIsNAN
     implicit none
 
     ! Input Variables
@@ -4048,7 +4053,7 @@ contains
     ! initialize this outside the ls
     LSFailed = .False.
 
-    if ((unsteadyNorm > unsteadyNorm_old*ANK_unstdyLSTol .or. isnan(unsteadyNorm))) then
+    if ((unsteadyNorm > unsteadyNorm_old*ANK_unstdyLSTol .or. myisnan(unsteadyNorm))) then
        ! The unsteady residual is too high or we have a NAN. Do a
        ! backtracking line search until we get a residual that is lower.
 
@@ -4078,7 +4083,7 @@ contains
           call VecNorm(rVec, NORM_2, unsteadyNorm, ierr)
           call EChk(ierr, __FILE__, __LINE__)
 
-          if (unsteadyNorm > unsteadyNorm_old*ANK_unstdyLSTol .or. isnan(unsteadyNorm)) then
+          if (unsteadyNorm > unsteadyNorm_old*ANK_unstdyLSTol .or. myisnan(unsteadyNorm)) then
 
              ! Restore back to the original wVec
              call VecAXPY(wVec, lambda, deltaW, ierr)
@@ -4093,7 +4098,7 @@ contains
           end if
        end do backtrack
 
-       if (LSFailed .or. isnan(unsteadyNorm)) then
+       if (LSFailed .or. myisnan(unsteadyNorm)) then
           ! the line search wasn't much help.
 
           if (ANK_CFL > ANK_CFLMin) then

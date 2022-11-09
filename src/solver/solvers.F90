@@ -1269,11 +1269,12 @@ contains
     use killSignals, only : routineFailed, fromPython
     use iteration, only : rhoRes, rhoResStart, totalR, totalRStart, totalR0
     use oversetData, only: oversetPresent
-    use utils, only : setPointers, myisnan, returnFail, maxHDiffMach, maxEddyv, &
+    use utils, only : setPointers, returnFail, maxHDiffMach, maxEddyv, &
          sumResiduals, sumAllResiduals
     use surfaceIntegrations, only : integrateSurfaces
     use zipperIntegrations, only : integrateZippers
     use surfaceFamilies, only : fullFamLIst
+    use genericISNAN, only : myIsNAN
     implicit none
     !
     !      Local variables.

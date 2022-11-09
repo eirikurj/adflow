@@ -2277,8 +2277,8 @@ contains
     integer(kind=intType), intent(in) :: inBegor, inEndor, jnBegor, jnEndor
     integer(kind=intType), intent(in) :: cgns_subface_isize, cgns_subface_jsize
 
-    real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax), intent(inout) :: bcVarArray, bcVarArrayd
     integer(kind=intType), intent(in) :: iBeg, iEnd, jBeg, jEnd
+    real(kind=realType), dimension(iBeg:iEnd,jBeg:jEnd, nbcVarMax), intent(inout) :: bcVarArray, bcVarArrayd
 
     !
     !      Local variables.
