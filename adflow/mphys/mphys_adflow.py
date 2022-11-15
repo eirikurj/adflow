@@ -334,7 +334,7 @@ class ADflowSolver(ImplicitComponent):
         # if self.comm.rank == 0:
         #     print('aero dv inputs:')
         #     pp(tmp)
-
+        
         self.ap.setDesignVars(tmp)
         if self.comm.rank == 0 and print_dict:
             pp(tmp)
@@ -368,6 +368,8 @@ class ADflowSolver(ImplicitComponent):
     
         self.ap.setBCVar(BCVar, value, famGroup)
         self.ap.addDV(BCVar, familyGroup=famGroup, name=dv_name)
+        
+        self.ap_vars, _ = get_dvs_and_cons(ap=self.ap)
         
         if coupling:
             tags = ["mphys_coupling"]
@@ -403,7 +405,7 @@ class ADflowSolver(ImplicitComponent):
             # Set the warped mesh
             # solver.mesh.setSolverGrid(inputs['adflow_vol_coords'])
             # ^ This call does not exist. Assume the mesh hasn't changed since the last call to the warping comp for now
-
+            
             self._set_ap(inputs)
             ap.solveFailed = False  # might need to clear this out?
             ap.fatalFail = False
@@ -740,13 +742,16 @@ class AdflowHeatTransfer(ExplicitComponent):
         )
 
 
-    def _set_ap(self, inputs):
+    def _set_ap(self, inputs, print_dict=True):
         tmp = {}
         for (args, _kwargs) in self.ap_vars:
             name = args[0]
             tmp[name] = inputs[name]
 
         self.ap.setDesignVars(tmp)
+        # self.options['solver'].setAeroProblem(self.options['ap'])
+        if self.comm.rank == 0 and print_dict:
+            pp(tmp)
 
     def set_ap(self, ap):
         # this is the external function to set the ap to this component
@@ -775,6 +780,9 @@ class AdflowHeatTransfer(ExplicitComponent):
     
         self.ap.setBCVar(BCVar, value, famGroup)
         self.ap.addDV(BCVar, familyGroup=famGroup, name=dv_name)
+        
+                
+        self.ap_vars, _ = get_dvs_and_cons(ap=self.ap)
         
         if coupling:
             tags = ["mphys_coupling"]
@@ -807,6 +815,11 @@ class AdflowHeatTransfer(ExplicitComponent):
         ap = self.ap
 
         self._set_ap(inputs, print_dict=False)
+        
+        print('inputs', [x for x in d_inputs])
+        print('outputs', [x for x in d_outputs])
+
+        # import pdb; pdb.set_trace()
 
         # check if we changed APs, then we have to do a bunch of updates
         if ap != solver.curAP:
@@ -842,7 +855,7 @@ class AdflowHeatTransfer(ExplicitComponent):
 
         elif mode == "rev":
             if "q_convect" in d_outputs:
-                hf = d_outputs["heatflux"]
+                hf = d_outputs["q_convect"]
 
                 # make the vector into the look like a coordinate vector
                 hfBar = np.zeros((hf.size, 3))
@@ -860,6 +873,7 @@ class AdflowHeatTransfer(ExplicitComponent):
                     d_inputs["adflow_vol_coords"] += xVBar
                 if "adflow_states" in d_inputs:
                     d_inputs["adflow_states"] += wBar
+                    
 
                 for dv_name, dv_bar in xDVBar.items():
                     if dv_name in d_inputs:
@@ -982,6 +996,9 @@ class ADflowFunctions(ExplicitComponent):
     
         self.ap.setBCVar(BCVar, value, famGroup)
         self.ap.addDV(BCVar, familyGroup=famGroup, name=dv_name)
+
+        
+        self.ap_vars, _ = get_dvs_and_cons(ap=self.ap)
         
         if coupling:
             tags = ["mphys_coupling"]
@@ -1146,6 +1163,8 @@ class ADflowFunctions(ExplicitComponent):
             wBar, xVBar, xDVBar = solver.computeJacobianVectorProductBwd(
                 funcsBar=funcsBar, wDeriv=True, xVDeriv=True, xDvDeriv=False, xDvDerivAero=True
             )
+            # import pdb
+            # pdb.set_trace()
             if "adflow_states" in d_inputs:
                 d_inputs["adflow_states"] += wBar
             if "adflow_vol_coords" in d_inputs:

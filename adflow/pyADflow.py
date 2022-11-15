@@ -4805,10 +4805,10 @@ class ADFLOW(AeroSolver):
 
         """
         # Error Checking
-        if resBar is None and funcsBar is None and fBar is None:
+        if resBar is None and funcsBar is None and fBar is None and hfBar is None:
             raise Error(
                 "computeJacobianVectorProductBwd: One of resBar, funcsBar and fBar"
-                " must be given. resBar=%s, funcsBar=%s, fBar=%s" % (resBar, funcsBar, fBar)
+                " must be given. resBar=%s, funcsBar=%s, fBar=%s, hfBar=%s" % (resBar, funcsBar, fBar, hfBar)
             )
         if wDeriv is None and xVDeriv is None and xDvDeriv is None and xSDeriv is None and xDvDerivAero is None:
             raise Error(
