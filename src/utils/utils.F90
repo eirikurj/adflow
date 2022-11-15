@@ -2552,32 +2552,6 @@ end subroutine cross_prod
 
   end function delta
 
-
-  logical function myIsNAN(val)
-    !
-    !       myIsNAN determines whether or not the given value is a NAN and
-    !       returns the according logical.
-    !
-    use constants
-    implicit none
-    !
-    !      Function arguments.
-    !
-    real(kind=realType), intent(in) :: val
-    !
-    !      Local variable.
-    !
-    integer(kind=intType) :: res
-
-    call myIsNaNC(val, res)
-    if(res == 1) then
-       myIsNAN = .true.
-    else
-       myIsNAN = .false.
-    endif
-
-  end function myIsNAN
-  !
   subroutine nullifyCGNSDomPointers(nn)
     !
     !       nullifyCGNSDomPointers nullifies all the pointers of the

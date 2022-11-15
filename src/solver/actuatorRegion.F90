@@ -22,9 +22,9 @@ contains
     implicit none
 
     ! Input variables
+    integer(kind=intType), intent(in) :: nPts, nConn, famID
     real(kind=realType), dimension(3, nPts), intent(in), target :: pts
     integer(kind=intType), dimension(4, nConn), intent(in), target :: conn
-    integer(kind=intType), intent(in) :: nPts, nConn, famID
     real(kind=realType), intent(in), dimension(3) :: axis1, axis2
     character(len=*) :: famName
     real(kind=realType) :: thrust, torque, heat, relaxStart, relaxEnd
@@ -586,10 +586,10 @@ contains
     use utils, only : setPointers,terminate, char2str
     use communication, only : myid
     !
+    integer(kind=intType), intent(in) ::  nVar, nFamMax
     real(kind=realType), dimension(nVar), intent(in) :: dataVec
     character, dimension(nVar, maxCGNSNameLen), intent(in) :: dataVarNames
     integer(kind=intType), dimension(nVar, nFamMax), intent(in) :: famLists
-    integer(kind=intType), intent(in) ::  nVar, nFamMax
     !
     !      Local
 
@@ -628,10 +628,10 @@ contains
     use utils, only : setPointers,terminate, char2str
     use communication, only : myid
     !
+    integer(kind=intType), intent(in) ::  nVar, nFamMax
     real(kind=realType), dimension(nVar), intent(in) :: dataVec, dataVecd
     character, dimension(nVar, maxCGNSNameLen), intent(in) :: dataVarNames
     integer(kind=intType), dimension(nVar, nFamMax), intent(in) :: famLists
-    integer(kind=intType), intent(in) ::  nVar, nFamMax
     !
     !      Local
 
@@ -674,11 +674,11 @@ contains
     use utils, only : setPointers,terminate, char2str
     use communication, only : myid
     !
+    integer(kind=intType), intent(in) ::  nVar, nFamMax
     real(kind=realType), dimension(nVar), intent(in) :: dataVec
     real(kind=realType), dimension(nVar), intent(inout) :: dataVecd
     character, dimension(nVar, maxCGNSNameLen), intent(in) :: dataVarNames
     integer(kind=intType), dimension(nVar, nFamMax), intent(in) :: famLists
-    integer(kind=intType), intent(in) ::  nVar, nFamMax
     !
     !      Local
 
