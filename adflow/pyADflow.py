@@ -6860,15 +6860,15 @@ class BCData(object):
             start_idx += old_data[idx].size
 
         # --- check to make sure the data is the right size before setting ---
-        if not (isinstance(data, float) or isinstance(data, numpy.complex)):
-            if old_tot_size != data.size:
-                raise Error(
-                    "the given data vector must match the size of the \
-                             old data, or one scalar value must be given.\
-                             {} given, {} expected".format(
-                        data.size, old_tot_size
-                    )
-                )
+        # if not (isinstance(data, float) or isinstance(data, numpy.complex)):
+        #     if old_tot_size != data.size:
+        #         raise Error(
+        #             "the given data vector must match the size of the \
+        #                      old data, or one scalar value must be given.\
+        #                      {} given, {} expected".format(
+        #                 data.size, old_tot_size
+        #             )
+        #         )
 
         self.setBCArraysData(old_data, bc_var, **kwargs)
 
