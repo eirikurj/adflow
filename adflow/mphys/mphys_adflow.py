@@ -145,7 +145,7 @@ class ADflowMesh(ExplicitComponent):
                 d_inputs["x_aero0_points"] += d_outputs["x_aero0"]
 
 
-class AdflowSurfaceMapper(ExplicitComponent):
+class ADflowSurfaceMapper(ExplicitComponent):
     """
     Component to get the partitioned surface mesh coordinates of different families groups
 
@@ -166,11 +166,11 @@ class AdflowSurfaceMapper(ExplicitComponent):
 
         in_famGroup = self.options["input_family_group"]
         coords = self.solver.getSurfaceCoordinates(groupName=in_famGroup).flatten(order="C")
-        self.add_input("x_aero_%s" % (in_famGroup), val=coords, desc="surface points for %s" % (in_famGroup))
+        self.add_input("x_aero_%s" % (in_famGroup), val=coords, desc="surface points for %s" % (in_famGroup), distributed=True)
 
         for famGroup in self.options["output_family_groups"]:
             coords = self.solver.getSurfaceCoordinates(groupName=famGroup).flatten(order="C")
-            self.add_output("x_aero_%s" % (famGroup), val=coords, desc="surface points for %s" % (famGroup))
+            self.add_output("x_aero_%s" % (famGroup), val=coords, desc="surface points for %s" % (famGroup), distributed=True)
 
     def compute(self, inputs, outputs):
 
@@ -257,7 +257,9 @@ class ADflowWarper(ExplicitComponent):
         solver = self.solver
 
         x_a = inputs["x_aero"].reshape((-1, 3))
+        
         solver.setSurfaceCoordinates(x_a)
+        
         solver.updateGeometryInfo()
         outputs["adflow_vol_coords"] = solver.mesh.getSolverGrid()
 
@@ -1446,6 +1448,9 @@ class ADflowBuilder(Builder):
 
         # just return the component that outputs the surface mesh.
         return ADflowMesh(aero_solver=self.solver, surface_groups=surface_groups)
+    
+    def get_mapper_subsystem(self, **kwargs):
+        return ADflowSurfaceMapper(aero_solver=self.solver, **kwargs)
 
     def get_pre_coupling_subsystem(self, scenario_name=None):
         if self.warp_in_solver:
