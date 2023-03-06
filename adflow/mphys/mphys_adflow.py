@@ -177,11 +177,13 @@ class ADflowSurfaceMapper(ExplicitComponent):
         in_famGroup = self.options["input_family_group"]
         in_vec = inputs["x_aero_%s" % (in_famGroup)]
         in_vec = in_vec.reshape(in_vec.size // 3, 3)
+        in_vec = np.ascontiguousarray(in_vec)
         # loop over output families add do the mapping for each
         for out_famGroup in self.options["output_family_groups"]:
 
             out_vec = outputs["x_aero_%s" % (out_famGroup)]
             out_vec = out_vec.reshape(out_vec.size // 3, 3)
+            out_vec = np.ascontiguousarray(out_vec)
 
             if self.solver.dtype == "D":
                 in_vec = np.array(in_vec, dtype=self.solver.dtype)
@@ -199,11 +201,13 @@ class ADflowSurfaceMapper(ExplicitComponent):
             if in_var_name in d_inputs:
                 in_vec = d_inputs[in_var_name]
                 in_vec = in_vec.reshape(in_vec.size // 3, 3)
+                in_vec = np.ascontiguousarray(in_vec)
 
                 for out_famGroup in self.options["output_family_groups"]:
                     if "x_aero_%s" % (out_famGroup) in d_outputs:
                         out_vec = d_outputs["x_aero_%s" % (out_famGroup)]
                         out_vec = out_vec.reshape(out_vec.size // 3, 3)
+                        out_vec = np.ascontiguousarray(out_vec)
                         out_vec = self.solver.mapVector(in_vec, in_famGroup, out_famGroup, out_vec)
 
                         d_outputs["x_aero_%s" % (out_famGroup)] += out_vec.flatten(order="C")
@@ -214,13 +218,13 @@ class ADflowSurfaceMapper(ExplicitComponent):
                     if "x_aero_%s" % (out_famGroup) in d_outputs:
                         out_vec = d_outputs["x_aero_%s" % (out_famGroup)]
                         out_vec = out_vec.reshape(out_vec.size // 3, 3)
-
+                        out_vec = np.ascontiguousarray(out_vec)
                         in_vec = np.zeros(d_inputs["x_aero_%s" % (in_famGroup)].shape)
                         in_vec = in_vec.reshape(in_vec.size // 3, 3)
+                        in_vec = np.ascontiguousarray(in_vec)
 
                         # reverse the mapping!
                         self.solver.mapVector(out_vec, out_famGroup, in_famGroup, in_vec)
-
                         d_inputs[in_var_name] += in_vec.flatten(order="C")
 
 
