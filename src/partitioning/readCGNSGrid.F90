@@ -335,10 +335,10 @@ contains
 
        select case (nFamBC)
 
-       case (0)
-          cgnsFamilies(nn)%BCTypeCGNS = Null
-          cgnsFamilies(nn)%BCType     = BCNull
-          cgnsFamilies(nn)%bcName     = ""
+            case (0)
+                cgnsFamilies(nn)%BCTypeCGNS = CG_Null
+                cgnsFamilies(nn)%BCType = BCNull
+                cgnsFamilies(nn)%bcName = ""
 
           !=============================================================
 
@@ -356,8 +356,8 @@ contains
           ! contain more information to determine the internally
           ! used BC.
 
-          testUserDefined: if(cgnsFamilies(nn)%BCTypeCGNS == &
-               UserDefined) then
+                testUserDefined: if (cgnsFamilies(nn)%BCTypeCGNS == &
+                                     CG_UserDefined) then
 
              ! Move to the family and determine the number of
              ! user defined data nodes.
@@ -622,7 +622,7 @@ contains
 
        ! Check if units were specified.
 
-       if(ierr == CG_OK .and. len /= Null) then
+            if (ierr == CG_OK .and. len /= CG_Null) then
 
           ! Copy the units and set gridUnitsSpecified to .true.
 
@@ -729,8 +729,8 @@ contains
        ! No family information specified.
        ! Try to read the rotation rate and center.
        call cg_rotating_read_f(real(rotRate,cgnsPerType), real(rotCenter,cgnsPerType), ierr)
-       
-       if(ierr == error)                &
+
+       if(ierr == error) &
             call terminate("readZoneInfo", &
             "Something wrong when calling &
             &cg_rotating_read_f")
@@ -769,7 +769,7 @@ contains
 
           ! Check if units were specified. If not assume radians.
 
-          if(ierr == CG_OK .and. angle /= Null) then
+                if (ierr == CG_OK .and. angle /= CG_Null) then
 
              ! Determine the conversion factor to radIans.
 
@@ -2135,7 +2135,7 @@ contains
 
              !===========================================================
 
-          case (UserDefined)
+                case (CG_UserDefined)
 
              ! A user defined boundary condition is prescribed.
              ! More information should be present. Determine the
@@ -2181,13 +2181,14 @@ contains
 
              ! Print an error message if the BC type was not recognized.
 
-             if(cgnsDoms(nZone)%bocoInfo(i)%BCType == bcNull) then
-                write(errorMessage,104) trim(cgnsDoms(nZone)%zoneName), &
-                     trim(cgnsDoms(nZone)%bocoInfo(i)%bocoName),        &
-                     trim(cgnsDoms(nZone)%bocoInfo(i)%userDefinedName)
-                if(myID == 0) call terminate("readBocos", errorMessage)
-                call mpi_barrier(ADflow_comm_world, ierr)
-             endif
+                    if (cgnsDoms(nZone)%bocoInfo(i)%BCType == BCNull) then
+                        write (errorMessage, strings) "Zone ", trim(cgnsDoms(nZone)%zoneName), &
+                            ", boundary face ", trim(cgnsDoms(nZone)%bocoInfo(i)%bocoName), &
+                            ": Unknown user-defined boundary condition ", &
+                            trim(cgnsDoms(nZone)%bocoInfo(i)%userDefinedName)
+                        if (myID == 0) call terminate("readBocos", errorMessage)
+                        call mpi_barrier(ADflow_comm_world, ierr)
+                    end if
 
              ! At the moment the domain interfaces as well as the
              ! bleed flows are only possible on a per family basis.
@@ -2234,12 +2235,13 @@ contains
 
              ! Print an error message if the BC type was not recognized.
 
-             if(cgnsDoms(nZone)%bocoInfo(i)%BCType == bcNull) then
-                write(errorMessage,106) trim(cgnsDoms(nZone)%zoneName), &
-                     trim(cgnsDoms(nZone)%bocoInfo(i)%bocoName)
-                if(myID == 0) call terminate("readBocos", errorMessage)
-                call mpi_barrier(ADflow_comm_world, ierr)
-             endif
+                    if (cgnsDoms(nZone)%bocoInfo(i)%BCType == BCNull) then
+                        write (errorMessage, strings) "Zone ", trim(cgnsDoms(nZone)%zoneName), &
+                            ", boundary face ", trim(cgnsDoms(nZone)%bocoInfo(i)%bocoName), &
+                            ": boundary condition type missing or not supported"
+                        if (myID == 0) call terminate("readBocos", errorMessage)
+                        call mpi_barrier(ADflow_comm_world, ierr)
+                    end if
 
              !added to accomodate case where a grid family is specified
              ! but BC's are specified in standard CGNS Format
@@ -2760,7 +2762,7 @@ contains
     case (BCTunnelOutflow)
        internalBC = SubsonicOutflow
 
-    case (UserDefined)
+        case (CG_UserDefined)
 
        ! Select the internal type base on the user defined name.
 
@@ -2793,13 +2795,13 @@ contains
        case ("BCDomainInterfaceTotal")
           internalBC = DomainInterfaceTotal
 
-       case default
-          internalBC = bcNull
+            case default
+                internalBC = BCNull
 
        end select
 
-    case default
-       internalBC = bcNull
+        case default
+            internalBC = BCNull
 
     end select
 
@@ -2882,7 +2884,7 @@ contains
 
        ! Check if the angle dimensions were specified.
 
-       if(ierr == CG_OK .and. angle /= Null) then
+            if (ierr == CG_OK .and. angle /= CG_Null) then
 
           ! Determine the conversion factor to radians.
 
@@ -3024,7 +3026,7 @@ contains
 
        ! Check if the angle dimensions were specified.
 
-       if(ierr == CG_OK .and. angle /= Null) then
+            if (ierr == CG_OK .and. angle /= CG_Null) then
 
           ! Determine the conversion factor to radians.
 
@@ -3320,13 +3322,13 @@ contains
     ! If the coordinates in the solution files must be written in
     ! meters, correct this info for all cgns blocks.
 
-    if( writeCoorMeter ) then
-       do i=1,cgnsNDom
-          cgnsDoms(i)%mass  = Null
-          cgnsDoms(i)%len   = Meter
-          cgnsDoms(i)%time  = Null
-          cgnsDoms(i)%temp  = Null
-          cgnsDoms(i)%angle = Null
+        if (writeCoorMeter) then
+            do i = 1, cgnsNDom
+                cgnsDoms(i)%mass = CG_Null
+                cgnsDoms(i)%len = Meter
+                cgnsDoms(i)%time = CG_Null
+                cgnsDoms(i)%temp = CG_Null
+                cgnsDoms(i)%angle = CG_Null
 
           cgnsDoms(i)%gridUnitsSpecified = .true.
           cgnsDoms(i)%LRef = one

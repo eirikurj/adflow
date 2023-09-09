@@ -218,8 +218,8 @@ module cgnsGrid
          integer :: BCTypeCGNS
          integer(kind=intType) :: BCType
 
-         ! Name of the CGNS user defined data node if the CGNS
-         ! boundary condition is UserDefined.
+        ! Name of the CGNS user defined data node if the CGNS
+        ! boundary condition is CG_UserDefined.
 
          character(len=maxCGNSNameLen) :: userDefinedName
 
@@ -434,8 +434,8 @@ module cgnsGrid
 
          character(len=maxCGNSNameLen) :: bcName
 
-         ! Name of the CGNS user defined data node if the CGNS
-         ! boundary condition is UserDefined.
+        ! Name of the CGNS user defined data node if the CGNS
+        ! boundary condition is CG_UserDefined.
 
          character(len=maxCGNSNameLen) :: userDefinedName
 

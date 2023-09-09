@@ -486,7 +486,7 @@ contains
 
        ! Write the family BC, if this is present.
 
-       if(cgnsFamilies(nn)%BCTypeCGNS /= Null) then
+            if (cgnsFamilies(nn)%BCTypeCGNS /= CG_Null) then
 
           call cg_fambc_write_f(cgnsInd, cgnsBase, ii,   &
                cgnsFamilies(nn)%bcName, &
@@ -496,10 +496,10 @@ contains
                "Something wrong when calling &
                &cg_fambc_write_f")
 
-          ! If the boundary condition is UserDefined add the
-          ! description what type of user defined BC it is.
+                ! If the boundary condition is CG_UserDefined add the
+                ! description what type of user defined BC it is.
 
-          if(cgnsFamilies(nn)%BCTypeCGNS == UserDefined) then
+                if (cgnsFamilies(nn)%BCTypeCGNS == CG_UserDefined) then
 
              ! Ultimately you would like to create the
              ! UserDefinedData_t as a subnode of the family boundary
@@ -620,13 +620,13 @@ contains
                "Something wrong when calling &
                &cg_dataclass_write_f")
 
-          call cg_units_write_f(Null, Null, Second, Null, &
-               Degree, ierr)
-          if(ierr /= CG_OK)                     &
-               call terminate("writeCGNSGridFrame", &
-               "Something wrong when calling &
-               &cg_units_write_f")
-       endif
+                call cg_units_write_f(CG_Null, CG_Null, Second, CG_Null, &
+                                      Degree, ierr)
+                if (ierr /= CG_OK) &
+                     call terminate("writeCGNSGridFrame", &
+                     "Something wrong when calling &
+                     &cg_units_write_f")
+            end if
 
        ! Loop over all 1 to 1 connectivities of the block and
        ! write the data.
@@ -753,12 +753,12 @@ contains
                   "Something wrong when calling &
                   &cg_dataclass_write_f")
 
-             call cg_units_write_f(Null, Null, Null, Null, &
-                  Degree, ierr)
-             if(ierr /= CG_OK)                     &
-                  call terminate("writeCGNSGridFrame", &
-                  "Something wrong when calling &
-                  &cg_units_write_f")
+                    call cg_units_write_f(CG_Null, CG_Null, CG_Null, CG_Null, &
+                                          Degree, ierr)
+                    if (ierr /= CG_OK) &
+                         call terminate("writeCGNSGridFrame", &
+                         "Something wrong when calling &
+                         &cg_units_write_f")
 
           else periodicTest
 
@@ -853,10 +853,10 @@ contains
                   &cg_famname_write_f")
           endif
 
-          ! If the boundary condition is UserDefined, write the
-          ! description of what type of user defined BC.
+                ! If the boundary condition is CG_UserDefined, write the
+                ! description of what type of user defined BC.
 
-          if(jj == UserDefined) then
+                if (jj == CG_UserDefined) then
 
              ! Go to the current boundary condition and write
              ! the appropriate data.

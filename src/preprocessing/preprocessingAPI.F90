@@ -1336,32 +1336,32 @@ contains
     ! assign a unique integer to each family in each boundary
     ! condition. The CGNS grid has all the information we need.
 
-    ! Firstly make sure that there is actual family specified for
-    ! each BC. If there isn't, we will provide one for you.
-    defaultFamName(BCAxisymmetricWedge) = 'axi'
-    defaultFamName(BCDegenerateLine) = 'degenerate'
-    defaultFamName(BCDegeneratePoint) ='degenerate'
-    defaultFamName(BCDirichlet) = 'dirichlet'
-    defaultFamName(BCExtrapolate) = 'extrap'
-    defaultFamName(BCFarfield) = 'far'
-    defaultFamName(BCGeneral) = 'general'
-    defaultFamName(BCInflow) = 'inflow'
-    defaultFamName(BCInflowSubsonic) = 'inflow'
-    defaultFamName(BCInflowSupersonic) = 'inflow'
-    defaultFamName(BCNeumann) = 'neumann'
-    defaultFamName(BCOutflow) = 'outflow'
-    defaultFamName(BCOutflowSubsonic) = 'outflow'
-    defaultFamName(BCOutflowSupersonic)  ='outflow'
-    defaultFamName(BCSymmetryPlane) = 'sym'
-    defaultFamName(BCSymmetryPolar) = 'sympolar'
-    defaultFamName(BCTunnelInflow) = 'inflow'
-    defaultFamName(BCTunnelOutflow) = 'outflow'
-    defaultFamName(BCWall) = 'wall'
-    defaultFamName(BCWallInviscid) = 'wall'
-    defaultFamName(BCWallViscous) = 'wall'
-    defaultFamName(BCWallViscousHeatFlux) = 'wall'
-    defaultFamName(BCWallViscousIsothermal) = 'wall'
-    defaultFamName(UserDefined) = 'userDefined'
+        ! Firstly make sure that there is actual family specified for
+        ! each BC. If there isn't, we will provide one for you.
+        defaultFamName(BCAxisymmetricWedge) = 'axi'
+        defaultFamName(BCDegenerateLine) = 'degenerate'
+        defaultFamName(BCDegeneratePoint) = 'degenerate'
+        defaultFamName(BCDirichlet) = 'dirichlet'
+        defaultFamName(BCExtrapolate) = 'extrap'
+        defaultFamName(BCFarfield) = 'far'
+        defaultFamName(BCGeneral) = 'general'
+        defaultFamName(BCInflow) = 'inflow'
+        defaultFamName(BCInflowSubsonic) = 'inflow'
+        defaultFamName(BCInflowSupersonic) = 'inflow'
+        defaultFamName(BCNeumann) = 'neumann'
+        defaultFamName(BCOutflow) = 'outflow'
+        defaultFamName(BCOutflowSubsonic) = 'outflow'
+        defaultFamName(BCOutflowSupersonic) = 'outflow'
+        defaultFamName(BCSymmetryPlane) = 'sym'
+        defaultFamName(BCSymmetryPolar) = 'sympolar'
+        defaultFamName(BCTunnelInflow) = 'inflow'
+        defaultFamName(BCTunnelOutflow) = 'outflow'
+        defaultFamName(BCWall) = 'wall'
+        defaultFamName(BCWallInviscid) = 'wall'
+        defaultFamName(BCWallViscous) = 'wall'
+        defaultFamName(BCWallViscousHeatFlux) = 'wall'
+        defaultFamName(BCWallViscousIsothermal) = 'wall'
+        defaultFamName(CG_UserDefined) = 'userDefined'
 
 101 format("CGNS Block ",I4,", boundary condition ",I4, ", of type ",a, &
          &" does not have a family. Based on the boundary condition type,&
@@ -3641,27 +3641,27 @@ contains
 
           ! The rotation matrices for the i-faces.
 
-          do mm=1,il
-             xFace   => x(mm,1:,1:,:);
-             rotFace => rotMatrixI(mm,:,:,:,:)
+                do mm = 1, il
+                    xFace => x(mm, 1:, 1:, :)
+                    rotFace => rotMatrixI(mm, :, :, :, :)
 
              call computeRotMatrixFace(xFace, rotFace, jl, kl)
           enddo
 
           ! The rotation matrices for the j-faces.
 
-          do mm=1,jl
-             xFace   => x(1:,mm,1:,:);
-             rotFace => rotMatrixJ(:,mm,:,:,:)
+                do mm = 1, jl
+                    xFace => x(1:, mm, 1:, :)
+                    rotFace => rotMatrixJ(:, mm, :, :, :)
 
              call computeRotMatrixFace(xFace, rotFace, il, kl)
           enddo
 
           ! The rotation matrices for the k-faces.
 
-          do mm=1,kl
-             xFace   => x(1:,1:,mm,:);
-             rotFace => rotMatrixK(:,:,mm,:,:)
+                do mm = 1, kl
+                    xFace => x(1:, 1:, mm, :)
+                    rotFace => rotMatrixK(:, :, mm, :, :)
 
              call computeRotMatrixFace(xFace, rotFace, il, jl)
           enddo
@@ -3902,7 +3902,7 @@ contains
     call timePeriodSpectral
     call timeRotMatricesSpectral
     ! solve for the new grid only for rigid rotation with analytical deformation case
-    if (.NOT. usetsinterpolatedgridvelocity) then 
+    if (.NOT. usetsinterpolatedgridvelocity) then
        call fineGridSpectralCoor
     end if
     call timeSpectralMatrices
@@ -4029,9 +4029,9 @@ contains
     call VecCreateMPIWithArray(ADFLOW_COMM_WORLD,3,ndimX,PETSC_DECIDE, &
          PETSC_NULL_SCALAR,x_like,PETScIerr)
     call EChk(PETScIerr,__FILE__,__LINE__)
-    
+
     adjointPETScPreProcVarsAllocated = .True.
-    
+
     ! Need to initialize the stencils as well, only once:
     call initialize_stencils
 

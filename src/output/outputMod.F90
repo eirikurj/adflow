@@ -235,7 +235,7 @@ contains
     if( volWriteBlank ) nVolDiscrVar  = nVolDiscrVar + 1
 
     if( volWriteDebug ) nVolDiscrVar  = nVolDiscrVar + 6
-    
+
 
   end subroutine numberOfVolSolVariables
 
@@ -581,19 +581,19 @@ contains
 
       nn = nn + 1
       solNames(nn) = cgnsDebug3
-      
+
       nn = nn + 1
       solNames(nn) = cgnsDebug4
 
       nn = nn + 1
       solNames(nn) = cgnsDebug5
-      
+
       nn = nn + 1
       solNames(nn) = cgnsDebug6
    endif
 
-    
-    
+
+
   end subroutine volSolNames
 
   subroutine surfSolNames(solNames)
@@ -959,7 +959,7 @@ contains
        do k=kBeg,kEnd
           do j=jBeg,jEnd
              do i=iBeg,iEnd
-                wIO(i,j,k,1) = p(i,j,k)/(RGas*w(i,j,k,irho))*Tref 
+                wIO(i,j,k,1) = p(i,j,k)/(RGas*w(i,j,k,irho))*Tref
              enddo
           enddo
        enddo
@@ -1395,7 +1395,7 @@ contains
                enddo
             enddo
          enddo
-  
+
       case (cgnsDebug2)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
@@ -1405,7 +1405,7 @@ contains
                enddo
             enddo
          enddo
-         
+
       case (cgnsDebug3)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
@@ -1415,8 +1415,8 @@ contains
                enddo
             enddo
          enddo
-  
-  
+
+
       case (cgnsDebug4)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
@@ -1426,7 +1426,7 @@ contains
                enddo
             enddo
          enddo
-  
+
       case (cgnsDebug5)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
@@ -1436,7 +1436,7 @@ contains
                enddo
             enddo
          enddo
-  
+
       case (cgnsDebug6)
          do k=kBeg,kEnd
             do j=jBeg,jEnd
@@ -1446,8 +1446,8 @@ contains
                enddo
             enddo
          enddo
-  
-  
+
+
     case default
        call terminate("storeSolInBuffer", &
             "This should not happen")
@@ -1540,11 +1540,11 @@ contains
     real(kind=realType) :: rot_speed2 ! norm of wCrossR squared
     real(kind=realType),Dimension(3) :: r_ ! spanwise position for given point
     real(kind=realType),Dimension(3) :: rrate_  ! the rotational rate of the WT
-    real(kind=realType),Dimension(3) :: wCrossR ! rotationrate cross radius    
+    real(kind=realType),Dimension(3) :: wCrossR ! rotationrate cross radius
     real(kind=realType), dimension(:,:,:), pointer :: xx1, xx2 ! for the coords
     ! The original i,j beging of the local block in the entire cgns block.
     real(kind=realType) :: subface_jBegOr, subface_jEndOr, subface_iBegOr, subface_iEndOr
-    
+
     ! Set the pointers to this block.
     call setPointers(blockID, 1_intType, sps)
    !  print *, "blockID = ", blockID
@@ -1629,7 +1629,7 @@ contains
        ! we don't have double halo structure for x, so we start from 0
        xx1    => x(0,:,:,:);   xx2    => x(1,:,:,:) ! 1 is our 2 since we are
        ! single haloed...
-       ww1    => w(1,1:,1:,:);   ww2    => w(2,1:,1:,:) 
+       ww1    => w(1,1:,1:,:);   ww2    => w(2,1:,1:,:)
        pp1    => p(1,1:,1:);     pp2    => p(2,1:,1:)
        ss => si(1,:,:,:) ; fact = -one
 
@@ -1650,10 +1650,10 @@ contains
        if(equations == RANSEquations) dd2Wall => d2Wall(2,:,:)
        subface_iBegOr = jBegOr
        subface_iEndOr = jEndOr
-       
+
        subface_jBegOr = kBegOr
        subface_jEndOr = kEndOr
-       
+
        !===============================================================
 
     case (iMax)
@@ -1681,13 +1681,13 @@ contains
        endif
 
        if(equations == RANSEquations) dd2Wall => d2Wall(il,:,:)
-       
+
        subface_iBegOr = jBegOr
        subface_iEndOr = jEndOr
-       
+
        subface_jBegOr = kBegOr
        subface_jEndOr = kEndOr
-       
+
        !===============================================================
 
     case (jMin)
@@ -1716,10 +1716,10 @@ contains
 
        if(equations == RANSEquations) dd2Wall => d2Wall(:,2,:)
 
-              
+
        subface_iBegOr = iBegOr
        subface_iEndOr = iEndOr
-       
+
        subface_jBegOr = kBegOr
        subface_jEndOr = kEndOr
 
@@ -1753,7 +1753,7 @@ contains
 
        subface_iBegOr = iBegOr
        subface_iEndOr = iEndOr
-       
+
        subface_jBegOr = kBegOr
        subface_jEndOr = kEndOr
 
@@ -1787,7 +1787,7 @@ contains
 
        subface_iBegOr = iBegOr
        subface_iEndOr = iEndOr
-       
+
        subface_jBegOr = jBegOr
        subface_jEndOr = jEndOr
 
@@ -1821,7 +1821,7 @@ contains
 
        subface_iBegOr = iBegOr
        subface_iEndOr = iEndOr
-       
+
        subface_jBegOr = jBegOr
        subface_jEndOr = jEndOr
 
@@ -1962,7 +1962,7 @@ contains
        ! Same formula used in referenceState (see initializeFlow.F90),
        ! multiplied by the square of the reference velocity (uRef).
        ! MachCoef is initialized in inputParamRoutines.F90 and can also be passed from the python layer
-       ! Note that the reference quantities (such as pRef, uRef, rhoInfDim, ..) are defined in  module 
+       ! Note that the reference quantities (such as pRef, uRef, rhoInfDim, ..) are defined in  module
        ! flowVarRefState (see flowVarRefState.F90) and first set in the subroutine referenceState
        ! (see initializeFlow.F90).
        uInfDim2 = (MachCoef*MachCoef*gammaInf*pInf/rhoInf)*uRef*uRef
@@ -1989,15 +1989,15 @@ contains
              !
              ! Cp = (P_i - P_0) / (0.5*rho*(U_a)^2)
              !
-             ! Numerator (dimensionalized): 
+             ! Numerator (dimensionalized):
              !     (P_i-P_0) -> (half*(pp1(i,j)+pp2(i,j))-pInf) * pRef
              !     P_i is given by the average of the wall and halo cell
-             !     (see comment at the beginning of storeSurfsolInBuffer)     
+             !     (see comment at the beginning of storeSurfsolInBuffer)
              !     pp1, pp2 are (nondimensional) pressure pointers, e.g. pp1 => p(1,1:,1:)
              !
-             ! Denominator (dimensionalized): (0.5*rho*(U_a)^2) -> 
+             ! Denominator (dimensionalized): (0.5*rho*(U_a)^2) ->
              !       (half*(rhoInfDim)*(uInfDim2 + rot_speed2))
-             !       The local velocity term includes the rotational components! 
+             !       The local velocity term includes the rotational components!
           enddo
        enddo
 
@@ -2070,7 +2070,6 @@ contains
        enddo
 
        !        ================================================================
-   
 
     case (cgnsSkinFmag, cgnsYplus, &
          cgnsSkinFx, cgnsSkinFy, cgnsSkinFz)
@@ -2092,10 +2091,10 @@ contains
          ! if statements are used to copy the value of the interior
          ! cell since the value isn't defined in the rind cell
 
-         if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+         if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then
             jor = j + subface_jBegOr - 1
-            if (jor == jBeg) then 
-               jj = j + 1 
+            if (jor == jBeg) then
+               jj = j + 1
             else if (jor == jEnd +1 ) then
                jj = j - 1
             else
@@ -2103,14 +2102,13 @@ contains
             endif
          else
             jj = j
-
          end if
 
           do i=rangeFace(1,1), rangeFace(1,2)
-             if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+             if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then
                ior = i + subface_iBegOr - 1
-               if (ior == iBeg) then 
-                  ii = i + 1 
+               if (ior == iBeg) then
+                  ii = i + 1
                else if (ior == iEnd + 1) then
                   ii = i - 1
                else
@@ -2204,10 +2202,10 @@ contains
          ! if statements are used to copy the value of the interior
          ! cell since the value isn't defined in the rind cell
 
-         if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+         if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then
             jor = j + subface_jBegOr - 1
-            if (jor == jBeg) then 
-               jj = j + 1 
+            if (jor == jBeg) then
+               jj = j + 1
             else if (jor == jEnd + 1) then
                jj = j - 1
             else
@@ -2219,10 +2217,10 @@ contains
          end if
 
           do i=rangeFace(1,1), rangeFace(1,2)
-             if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+             if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then
                ior = i + subface_iBegOr - 1
-               if (ior == iBeg) then 
-                  ii = i + 1 
+               if (ior == iBeg) then
+                  ii = i + 1
                else if (ior == iEnd + 1) then
                   ii = i - 1
                else
@@ -2322,33 +2320,33 @@ contains
          ! are set equal to the nearest physical face. Therefore the
          ! working indices are ii and jj.
          do j=rangeFace(2,1), rangeFace(2,2)
-         
+
             !  if satements are used to copy the value of of the interior
-            ! cell since the value isn't difined in the rind ell 
-            
-            if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+            ! cell since the value isn't difined in the rind ell
+
+            if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then
                jor = j + subface_jBegOr - 1
-               if (jor == jBeg) then 
-                  jj = j + 1 
+               if (jor == jBeg) then
+                  jj = j + 1
                else if (jor == jEnd + 1) then
                   jj = j - 1
                else
-                  jj = j 
+                  jj = j
                endif
             else
                jj = j
-               
+
             end if
-   
+
              do i=rangeFace(1,1), rangeFace(1,2)
-                if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+                if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then
                   ior = i + subface_iBegOr - 1
-                  if (ior == iBeg) then 
-                     ii = i + 1 
+                  if (ior == iBeg) then
+                     ii = i + 1
                   else if (ior == iEnd + 1) then
                      ii = i - 1
                   else
-                     ii = i 
+                     ii = i
                   endif
                else
                   ii = i
@@ -2372,9 +2370,9 @@ contains
                buffer(nn) = qw
             enddo
          enddo
-         
+
       case (cgnsHeatTransferCoef)
-  
+
          fact = pRef*sqrt(pRef/rhoRef)
 
        ! Loop over the given range of faces. As the viscous data is
@@ -2382,47 +2380,47 @@ contains
          ! are set equal to the nearest physical face. Therefore the
          ! working indices are ii and jj.
          do j=rangeFace(2,1), rangeFace(2,2)
-         
+
             !  if satements are used to copy the value of of the interior
-            ! cell since the value isn't difined in the rind ell 
-            
-            if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then 
+            ! cell since the value isn't difined in the rind ell
+
+            if (present(jBeg) .and. present(jEnd) .and. (useRindLayer)) then
                jor = j + subface_jBegOr - 1
-               if (jor == jBeg) then 
-                  jj = j + 1 
+               if (jor == jBeg) then
+                  jj = j + 1
                else if (jor == jEnd + 1) then
                   jj = j - 1
                else
-                  jj = j 
+                  jj = j
                endif
             else
                jj = j
-               
+
             end if
-   
+
             do i=rangeFace(1,1), rangeFace(1,2)
-                if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then 
+                if (present(iBeg) .and. present( iEnd) .and. (useRindLayer)) then
                   ior = i + subface_iBegOr - 1
-                  if (ior == iBeg) then 
-                     ii = i + 1 
+                  if (ior == iBeg) then
+                     ii = i + 1
                   else if (ior == iEnd + 1) then
                      ii = i - 1
                   else
-                     ii = i 
+                     ii = i
                   endif
                else
                   ii = i
                endif
-  
-  
+
+
                ! Determine the viscous subface on which this
                ! face is located.
-  
+
                mm = viscPointer(ii,jj)
-  
+
                ! Compute the heat flux. Multipy with the sign of the
                ! normal to obtain the correct value.
-  
+
                qw = fact*(viscSubface(mm)%q(ii,jj,1)*BCData(mm)%norm(ii,jj,1) &
                + viscSubface(mm)%q(ii,jj,2)*BCData(mm)%norm(ii,jj,2) &
                + viscSubface(mm)%q(ii,jj,3)*BCData(mm)%norm(ii,jj,3))
@@ -2435,7 +2433,7 @@ contains
                end if
             enddo
          enddo
-  
+
 
     end select varName
 
@@ -3074,15 +3072,15 @@ contains
 
     case (timeSpectral)
 
-       ! Time spectral mode. This is not a predefined mode in CGNS
-       ! and therefore use userDefined.
+            ! Time spectral mode. This is not a predefined mode in CGNS
+            ! and therefore use CG_UserDefined.
 
-       call cg_simulation_type_write_f(cgnsInd, base, &
-            UserDefined, ierr)
-       if(ierr /= CG_OK)                  &
-            call terminate("writeCGNSHeader", &
-            "Something wrong when calling &
-            &cg_simulation_type_write_f")
+            call cg_simulation_type_write_f(cgnsInd, base, &
+                                            CG_UserDefined, ierr)
+            if (ierr /= CG_OK) &
+                 call terminate("writeCGNSHeader", &
+                 "Something wrong when calling &
+                 &cg_simulation_type_write_f")
 
        ! Write some info to the string message.
 
@@ -3506,11 +3504,11 @@ contains
     ! Write that user defined model is used; k-tau is not
     ! supported by cgns.
 
-    call cg_model_write_f("TurbulenceModel_t", &
-         UserDefined, ierr)
-    if(ierr /= CG_OK)                    &
-         call terminate("writeCGNSKtauInfo", &
-         "Something wrong when calling cg_model_write_f")
+        call cg_model_write_f("TurbulenceModel_t", &
+                              CG_UserDefined, ierr)
+        if (ierr /= CG_OK) &
+            call terminate("writeCGNSKtauInfo", &
+                           "Something wrong when calling cg_model_write_f")
 
     ! Write the turbulent closure type.
 
@@ -3830,12 +3828,12 @@ contains
             "Something wrong when calling &
             &cg_dataclass_write_f")
 
-       call cg_units_write_f(Kilogram, Meter, Second, Kelvin, &
-            Null, ierr)
-       if(ierr /= CG_OK)                      &
-            call terminate("writeReferenceState", &
-            "Something wrong when calling &
-            &cg_units_write_f")
+            call cg_units_write_f(Kilogram, Meter, Second, Kelvin, &
+                                  CG_Null, ierr)
+            if (ierr /= CG_OK) &
+                 call terminate("writeReferenceState", &
+                 "Something wrong when calling &
+                 &cg_units_write_f")
 
     enddo refLoop
   end subroutine writeCGNSReferenceState
@@ -4042,7 +4040,7 @@ contains
     ! Write that user defined model is used; v2-f is not
     ! supported by cgns.
 
-    call cg_model_write_f("TurbulenceModel_t", UserDefined, ierr)
+        call cg_model_write_f("TurbulenceModel_t", CG_UserDefined, ierr)
 
     if(ierr /= CG_OK)                   &
          call terminate("writeCGNSV2fInfo", &
