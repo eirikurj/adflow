@@ -2182,7 +2182,7 @@ contains
              ! Print an error message if the BC type was not recognized.
 
                     if (cgnsDoms(nZone)%bocoInfo(i)%BCType == BCNull) then
-                        write (errorMessage, strings) "Zone ", trim(cgnsDoms(nZone)%zoneName), &
+                        write (errorMessage, 104) "Zone ", trim(cgnsDoms(nZone)%zoneName), &
                             ", boundary face ", trim(cgnsDoms(nZone)%bocoInfo(i)%bocoName), &
                             ": Unknown user-defined boundary condition ", &
                             trim(cgnsDoms(nZone)%bocoInfo(i)%userDefinedName)
@@ -2236,7 +2236,7 @@ contains
              ! Print an error message if the BC type was not recognized.
 
                     if (cgnsDoms(nZone)%bocoInfo(i)%BCType == BCNull) then
-                        write (errorMessage, strings) "Zone ", trim(cgnsDoms(nZone)%zoneName), &
+                        write (errorMessage, 106) "Zone ", trim(cgnsDoms(nZone)%zoneName), &
                             ", boundary face ", trim(cgnsDoms(nZone)%bocoInfo(i)%bocoName), &
                             ": boundary condition type missing or not supported"
                         if (myID == 0) call terminate("readBocos", errorMessage)
