@@ -322,7 +322,7 @@ contains
             ! Unsteady computation. A suffix is added depending on the
             ! time step.
 
-            write (intString, "(i4.4)") timeStepUnsteady + nTimeStepsRestart
+            write (intString, "(i7)") timeStepUnsteady + nTimeStepsRestart
             intString = adjustl(intString)
 
             surfSolFileNames(1) = trim(surfaceSolFile)//"&
