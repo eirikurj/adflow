@@ -2760,32 +2760,35 @@ class ADFLOW(AeroSolver):
         else:
             ts = 1
 
-        # Now call each of the 4 routines with the appropriate file name:
+        # Now call each of the routines with the appropriate file name
         if self.getOption("writevolumesolution") and numpy.mod(ts, self.getOption("nsavevolume")) == 0:
             self.writeVolumeSolutionFile(base + "_vol.cgns")
 
         if self.getOption("writesurfacesolution") and numpy.mod(ts, self.getOption("nsavesurface")) == 0:
             self.writeSurfaceSolutionFile(base + "_surf.cgns")
 
-        # ADD NSAVE TEST AROUND THESE AS WELL BUT
-        # THIS IS SMALL COMPARED TO OTHER. REFACTOR
-        if self.getOption("equationMode").lower() == "unsteady":
-            liftName = base + "_lift_Timestep%4.4d.dat" % ts
-            sliceName = base + "_slices_Timestep%4.4d.dat" % ts
-            surfName = base + "_surf_Timestep%4.4d.plt" % ts
-        else:
-            liftName = base + "_lift.dat"
-            sliceName = base + "_slices.dat"
-            surfName = base + "_surf.plt"
-
-        # Get the family list to write for the surface.
-        famList = self._getFamilyList(self.getOption("outputSurfaceFamily"))
-
         # Flag to write the tecplot surface solution or not
         writeSurf = self.getOption("writeTecplotSurfaceSolution")
 
-        # # Call fully compbined fortran routine.
-        self.adflow.tecplotio.writetecplot(sliceName, writeSlices, liftName, writeLift, surfName, writeSurf, famList)
+        if (writeSlices or writeLift or writeSurf) and numpy.mod(ts, self.getOption("nsavesurface")) == 0:
+            if self.getOption("equationMode").lower() == "unsteady":
+                # Find the number of digits of the timesteps to format the timestep string with zeros correctly
+                numDigits = len(str(self.getOption("nTimeStepsFine")))
+                timeStepFmt = f"{ts:0{numDigits}d}"
+
+                liftName = base + f"_lift_{timeStepFmt}.dat"
+                sliceName = base + f"_slices_{timeStepFmt}.dat"
+                surfName = base + f"_surf_{timeStepFmt}.plt"
+            else:
+                liftName = base + "_lift.dat"
+                sliceName = base + "_slices.dat"
+                surfName = base + "_surf.plt"
+
+            # Get the family list to write for the surface.
+            famList = self._getFamilyList(self.getOption("outputSurfaceFamily"))
+
+            # # Call fully combined fortran routine.
+            self.adflow.tecplotio.writetecplot(sliceName, writeSlices, liftName, writeLift, surfName, writeSurf, famList)
 
     def writeMeshFile(self, fileName):
         """Write the current mesh to a CGNS file. This call isn't used
