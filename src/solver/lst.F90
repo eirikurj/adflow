@@ -156,7 +156,7 @@ contains
         call PetscTime(t2, ierr)
         call EChk(ierr, __FILE__, __LINE__)
 
-        call EPSView(epsContext, PETSC_VIEWER_STDOUT_SELF, ierr)
+        call EPSView(epsContext, PETSC_VIEWER_STDOUT_WORLD, ierr)
 
         ! Extract solution information and print key information
         call EPSGetIterationNumber(epsContext, its, ierr)
