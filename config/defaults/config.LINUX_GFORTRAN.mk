@@ -49,6 +49,11 @@ include ${PETSC_DIR}/lib/petsc/conf/variables # PETSc 3.6
 PETSC_INCLUDE_FLAGS=${PETSC_CC_INCLUDES} -I$(PETSC_DIR)
 PETSC_LINKER_FLAGS=${PETSC_LIB}
 
+# ------- Define S Info --- Should not need to modify this -----
+include ${SLEPC_DIR}/lib/slepc/conf/slepc_variables
+SLEPC_INCLUDE_FLAGS=${SLEPC_CC_INCLUDES} -I$(SLEPC_DIR)
+SLEPC_LINKER_FLAGS=${SLEPC_LIB}
+
 # Combine flags from above -- don't modify here
 FF90_PRECISION_FLAGS = $(FF90_INTEGER_PRECISION_FLAG)$(FF90_REAL_PRECISION_FLAG)
 CC_PRECISION_FLAGS   = $(CC_INTEGER_PRECISION_FLAG) $(CC_REAL_PRECISION_FLAG)

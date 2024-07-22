@@ -1716,6 +1716,23 @@ class ADFLOW(AeroSolver):
             funcsBar = {f.lower(): 0.0}
         return funcsBar
 
+    def solveLST(self):
+        """
+        Perform LST analysis
+
+        Note that an analysis must have been completed before
+        """
+        # Initialize SLEPc and all
+        self.adflow.lst.initalizelst()
+
+        # Solve the LST
+        self.adflow.lst.solvelst()
+
+        # Clean LST memory
+        self.adflow.lst.destroylst()
+
+
+
     def evalFunctionsSens(self, aeroProblem, funcsSens, evalFuncs=None):
         """
         Evaluate the sensitivity of the desired functions given in
@@ -5772,6 +5789,7 @@ class ADFLOW(AeroSolver):
             "cavSensorSharpness": [float, 10.0],
             "cavExponent": [int, 0],
             "computeCavitation": [bool, False],
+            # LST parmeters
         }
 
         return defOpts

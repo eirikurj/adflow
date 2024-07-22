@@ -714,6 +714,17 @@ python module libadflow
 
        end module solvers
 
+      module lst ! in lst.F90
+          subroutine initalizelst ! in lst.F90:lst
+          end subroutine initalizelst
+
+          subroutine solvelst ! in lst.F90:lst
+          end subroutine solvelst
+
+          subroutine destroylst ! in lst.F90:lst
+          end subroutine destroylst
+      end module lst
+
       module aleutils
 
          subroutine shiftlevelale

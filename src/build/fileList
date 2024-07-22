@@ -105,6 +105,7 @@ fortranFiles=	ADT/adtUtils.F90\
 		solver/multiGrid.F90\
 		solver/solvers.F90\
 		solver/amg.F90\
+		solver/lst.F90\
 		\
 		turbulence/turbMod.F90\
 		turbulence/turbBCRoutines.F90\
