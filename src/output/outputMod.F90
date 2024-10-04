@@ -231,6 +231,7 @@ contains
                                             + (nw - nwf)
 
         if (volWriteBlank) nVolDiscrVar = nVolDiscrVar + 1
+        if (volWriteLSTEvec) nVolDiscrVar = nVolDiscrVar + 1
 
     end subroutine numberOfVolSolVariables
 
@@ -567,6 +568,11 @@ contains
             solNames(nn) = cgnsIntermittency
         end if
 
+        if (volWriteLSTEvec) then
+            nn = nn + 1
+            solNames(nn) = cgnsLSTEvec
+        end if
+
     end subroutine volSolNames
 
     subroutine surfSolNames(solNames)
@@ -735,6 +741,7 @@ contains
         use utils, only: terminate
         use oversetData, only: oversetPresent
         use inputIO, only: laminarToTurbulent
+
         implicit none
         !
         !      Subroutine arguments.
@@ -1345,6 +1352,16 @@ contains
                     end do
                 end do
             end do
+
+        case (cgnsLSTEvec)
+            do k = kBeg, kEnd
+                do j = jBeg, jEnd
+                    do i = iBeg, iEnd
+                        wIO(i, j, k, 1) = LSTEvecReal(i, j, k)
+                    end do
+                end do
+            end do
+
 
         case default
             call terminate("storeSolInBuffer", &

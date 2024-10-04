@@ -179,6 +179,9 @@ module blockPointers
     real(kind=realType), dimension(:, :, :, :), pointer :: sFaceIALE, sFaceJALE, sFaceKALE
     real(kind=realType), dimension(:, :, :, :, :), pointer :: dwALE, fwALE
 
+    ! LST related variables
+    real(kind=realType), dimension(:, :, :), pointer :: LSTEvecReal
+
 #ifndef USE_TAPENADE
     TYPE(VISCSUBFACETYPE), DIMENSION(:), POINTER :: viscsubfaced
 

@@ -3522,6 +3522,9 @@ contains
         dwALE => flowDoms(nn, 1, ll)%dwALE
         fwALE => flowDoms(nn, 1, ll)%fwALE
 
+        ! LST related variables
+        LSTEvecReal => flowDoms(nn, 1, ll)%LSTEvecReal
+
         ! Pointers for PC
         PCMat => flowDoms(nn, mm, ll)%pcMat
 

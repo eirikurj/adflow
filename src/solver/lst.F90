@@ -9,6 +9,10 @@ module lst
     Mat drdw
     EPS epsContext
 
+    ! Eigenvector stored for writing to file
+    !real(kind=realType), dimension(:), allocatable :: lstEvecReal
+
+
 
 contains
     subroutine initalizeLST
@@ -31,7 +35,7 @@ contains
         integer(kind=intType), dimension(:), allocatable :: nnzDiagonal, nnzOffDiag
         integer(kind=intType), dimension(:, :), pointer :: stencil
 
-        ! Call destroy just in case we already inilized
+        ! Call destroy just in case we already initialized
         !call destroyLST()
 
         ! TODO: Do the inialization here for now, but should move probably to init step earlier
@@ -87,13 +91,18 @@ contains
         !
         logical :: useAD, usePC, useTranspose, useObjective
         integer(kind=intType) :: ierr, level
-        ! EPS variables
 
+        ! EPS variables
         PetscViewer viewer
         EPSType epsTypeName
         PetscInt its, nev, ncv, maxit
         PetscReal tol
         PetscLogDouble t1, t2
+
+        ! Eigenvalue and eigenvector
+        PetscScalar kr, ki
+        Vec xr, xi
+
 
         ! Assembling the Jacobian dRdw
         ! Assemble with AD use the exact matrix, not the PC, and no transpose
@@ -184,6 +193,22 @@ contains
         call PetscViewerPopFormat(PETSC_VIEWER_STDOUT_WORLD, ierr)
         call EChk(ierr, __FILE__, __LINE__)
 
+        ! Extract and store the first eigenvalue and eigenvector
+        call MatCreateVecs(drdw, PETSC_NULL_VEC, xr, ierr)
+        call EChk(ierr, __FILE__, __LINE__)
+        call MatCreateVecs(drdw, PETSC_NULL_VEC, xi, ierr)
+        call EChk(ierr, __FILE__, __LINE__)
+        call EPSGetEigenpair(epsContext, 0, kr, ki, xr, xi, ierr)
+        call EChk(ierr, __FILE__, __LINE__)
+
+        if (myid .eq. 0) then
+            print *, "Eigenvalue real: ", kr
+            print *, "Eigenvalue imag: ", ki
+        end if
+
+        ! Copy the eigenvector to the ADflow data structure
+        call setEigenVector(xr)
+
 
     end subroutine solveLST
 
@@ -206,5 +231,47 @@ contains
 
     end subroutine destroyLST
 
+
+    subroutine setEigenVector(eVec)
+        ! This routine copies the eigenvector from the PETSc Vec to the ADflow data structure
+        use constants
+        use blockPointers, only: nDom, il, jl, kl, LSTEvecReal
+        use inputTimeSpectral, only: nTimeIntervalsSpectral
+        use flowVarRefState, only: nwf, nt1, nt2, winf
+        use utils, only: setPointers, EChk
+
+        implicit none
+
+        Vec eVec
+        integer(kind=intType) :: ierr, nn, sps, i, j, k, l, ii
+        real(kind=realType), dimension(:), pointer :: eVecPointer
+
+        call VecGetArrayReadF90(eVec, eVecPointer, ierr)
+        call EChk(ierr, __FILE__, __LINE__)
+
+        print * , "Max value of eigenvector: ", maxval(abs(eVecPointer))
+        print * , "Min value of eigenvector: ", minval(abs(eVecPointer))
+
+        ii = 1
+        do nn = 1, nDom
+            do sps = 1, nTimeIntervalsSpectral
+                call setPointers(nn, 1_intType, sps)
+
+                do k = 2, kl
+                    do j = 2, jl
+                        do i = 2, il
+                            LSTEvecReal(i, j, k) = eVecPointer(ii)
+                            print *, "Eigenvector i, val: ", ii, eVecPointer(ii)
+                            ii = ii + 1
+                        end do
+                    end do
+                end do
+            end do
+        end do
+
+        call VecRestoreArrayReadF90(eVec, eVecPointer, ierr)
+        call EChk(ierr, __FILE__, __LINE__)
+
+    end subroutine setEigenVector
 
 end module lst

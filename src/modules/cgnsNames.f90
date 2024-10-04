@@ -282,4 +282,9 @@ module cgnsNames
     character(len=maxCGNSNameLen), parameter :: &
         TimeHistory = "TimeHistory"
 
+!
+!       Names of the LST Jacobian eigenvector
+!
+        character(len=maxCGNSNameLen), parameter :: cgnsLSTEvec = "LSTEvec"
+
 end module cgnsNames
