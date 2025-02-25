@@ -750,7 +750,7 @@ module block
         type(iPtr), dimension(3) :: intCommvars
 
         ! LST related variables
-        real(kind=realType), dimension(:, :, :), pointer :: LSTEvecReal
+        real(kind=realType), dimension(:, :, :, :), pointer :: LSTEvecReal
 
     end type blockType
 

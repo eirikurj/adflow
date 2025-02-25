@@ -12,7 +12,7 @@ module lst
     ! Eigenvector stored for writing to file
     !real(kind=realType), dimension(:), allocatable :: lstEvecReal
 
-
+    integer(kind=intType) :: nState, nStateTurb
 
 contains
     subroutine initalizeLST
@@ -31,7 +31,7 @@ contains
         !
         integer(kind=intType) :: ierr, level
         integer(kind=intType) :: nDimW
-        integer(kind=intType) :: n_stencil, nState
+        integer(kind=intType) :: n_stencil
         integer(kind=intType), dimension(:), allocatable :: nnzDiagonal, nnzOffDiag
         integer(kind=intType), dimension(:, :), pointer :: stencil
 
@@ -231,7 +231,6 @@ contains
 
     end subroutine destroyLST
 
-
     subroutine setEigenVector(eVec)
         ! This routine copies the eigenvector from the PETSc Vec to the ADflow data structure
         use constants
@@ -260,14 +259,16 @@ contains
                 do k = 2, kl
                     do j = 2, jl
                         do i = 2, il
-                            LSTEvecReal(i, j, k) = eVecPointer(ii)
-                            print *, "Eigenvector i, val: ", ii, eVecPointer(ii)
-                            ii = ii + 1
+                            do l = 1, nwf
+                                LSTEvecReal(i, j, k, l) = eVecPointer(ii)
+                                ii = ii + 1
+                            end do
                         end do
                     end do
                 end do
             end do
         end do
+
 
         call VecRestoreArrayReadF90(eVec, eVecPointer, ierr)
         call EChk(ierr, __FILE__, __LINE__)

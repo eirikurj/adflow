@@ -231,7 +231,11 @@ contains
                                             + (nw - nwf)
 
         if (volWriteBlank) nVolDiscrVar = nVolDiscrVar + 1
-        if (volWriteLSTEvec) nVolDiscrVar = nVolDiscrVar + 1
+        if (volWriteLSTEvecRho) nVolDiscrVar = nVolDiscrVar + 1
+        if (volWriteLSTEvecVelX) nVolDiscrVar = nVolDiscrVar + 1
+        if (volWriteLSTEvecVelY) nVolDiscrVar = nVolDiscrVar + 1
+        if (volWriteLSTEvecVelZ) nVolDiscrVar = nVolDiscrVar + 1
+        if (volWriteLSTEvecRhoE) nVolDiscrVar = nVolDiscrVar + 1
 
     end subroutine numberOfVolSolVariables
 
@@ -568,9 +572,29 @@ contains
             solNames(nn) = cgnsIntermittency
         end if
 
-        if (volWriteLSTEvec) then
+        if (volWriteLSTEvecRho) then
             nn = nn + 1
-            solNames(nn) = cgnsLSTEvec
+            solNames(nn) = cgnsLSTEvecRho
+        end if
+
+        if (volWriteLSTEvecVelX) then
+            nn = nn + 1
+            solNames(nn) = cgnsLSTEvecVelX
+        end if
+
+        if (volWriteLSTEvecVelY) then
+            nn = nn + 1
+            solNames(nn) = cgnsLSTEvecVelY
+        end if
+
+        if (volWriteLSTEvecVelZ) then
+            nn = nn + 1
+            solNames(nn) = cgnsLSTEvecVelZ
+        end if
+
+        if (volWriteLSTEvecRhoE) then
+            nn = nn + 1
+            solNames(nn) = cgnsLSTEvecRhoE
         end if
 
     end subroutine volSolNames
@@ -1353,15 +1377,50 @@ contains
                 end do
             end do
 
-        case (cgnsLSTEvec)
+        case (cgnsLSTEvecRho)
             do k = kBeg, kEnd
                 do j = jBeg, jEnd
                     do i = iBeg, iEnd
-                        wIO(i, j, k, 1) = LSTEvecReal(i, j, k)
+                        wIO(i, j, k, 1) = LSTEvecReal(i, j, k, irho)
                     end do
                 end do
             end do
 
+        case (cgnsLSTEvecVelX)
+            do k = kBeg, kEnd
+                do j = jBeg, jEnd
+                    do i = iBeg, iEnd
+                        wIO(i, j, k, 1) = LSTEvecReal(i, j, k, ivx)
+                    end do
+                end do
+            end do
+
+        case (cgnsLSTEvecVelY)
+            do k = kBeg, kEnd
+                do j = jBeg, jEnd
+                    do i = iBeg, iEnd
+                        wIO(i, j, k, 1) = LSTEvecReal(i, j, k, ivy)
+                    end do
+                end do
+            end do
+
+        case (cgnsLSTEvecVelZ)
+            do k = kBeg, kEnd
+                do j = jBeg, jEnd
+                    do i = iBeg, iEnd
+                        wIO(i, j, k, 1) = LSTEvecReal(i, j, k, ivz)
+                    end do
+                end do
+            end do
+
+        case (cgnsLSTEvecRhoE)
+            do k = kBeg, kEnd
+                do j = jBeg, jEnd
+                    do i = iBeg, iEnd
+                        wIO(i, j, k, 1) = LSTEvecReal(i, j, k, irhoE)
+                    end do
+                end do
+            end do
 
         case default
             call terminate("storeSolInBuffer", &

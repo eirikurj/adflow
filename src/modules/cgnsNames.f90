@@ -285,6 +285,10 @@ module cgnsNames
 !
 !       Names of the LST Jacobian eigenvector
 !
-        character(len=maxCGNSNameLen), parameter :: cgnsLSTEvec = "LSTEvec"
+        character(len=maxCGNSNameLen), parameter :: cgnsLSTEvecRho = "LSTEvecDensity"
+        character(len=maxCGNSNameLen), parameter :: cgnsLSTEvecVelX = "LSTEvecVelocityX"
+        character(len=maxCGNSNameLen), parameter :: cgnsLSTEvecVelY = "LSTEvecVelocityY"
+        character(len=maxCGNSNameLen), parameter :: cgnsLSTEvecVelZ = "LSTEvecVelocityZ"
+        character(len=maxCGNSNameLen), parameter :: cgnsLSTEvecRhoE = "LSTEvecEnergyStagnationDensity"
 
 end module cgnsNames

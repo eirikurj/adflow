@@ -2558,7 +2558,11 @@ contains
         volWriteGC = .false.
         volWriteStatus = .false.
         volWriteIntermittency = .false.
-        volWriteLSTEvec = .false.
+        volWriteLSTEvecRho = .false.
+        volWriteLSTEvecVelX = .false.
+        volWriteLSTEvecVelY = .false.
+        volWriteLSTEvecVelZ = .false.
+        volWriteLSTEvecRhoE = .false.
 
         ! Initialize nVarSpecified to 0. This serves as a test
         ! later on.
@@ -2710,8 +2714,24 @@ contains
                 volWriteIntermittency = .true.
                 nVarSpecified = nVarSpecified + 1
 
-            case ("lstevec")
-                volWriteLSTEvec = .true.
+            case ("lstevecrho")
+                volWriteLSTEvecRho = .true.
+                nVarSpecified = nVarSpecified + 1
+
+            case ("lstevecvelx")
+                volWriteLSTEvecVelX = .true.
+                nVarSpecified = nVarSpecified + 1
+
+            case ("lstevecvely")
+                volWriteLSTEvecVelY = .true.
+                nVarSpecified = nVarSpecified + 1
+
+            case ("lstevecvelz")
+                volWriteLSTEvecVelZ = .true.
+                nVarSpecified = nVarSpecified + 1
+
+            case ("lstevecrhoe")
+                volWriteLSTEvecRhoE = .true.
                 nVarSpecified = nVarSpecified + 1
 
             case default
